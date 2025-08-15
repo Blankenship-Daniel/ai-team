@@ -54,6 +54,15 @@ The Tmux Orchestrator uses a three-tier hierarchy to overcome context window lim
 ![Project Completed](Examples/Project%20Completed.png)
 *Successful project completion with all tasks verified and committed*
 
+## ⚡ 30-Second Setup
+
+```bash
+# Install and start your AI team in one command:
+./install.sh && ./quickstart.sh
+```
+
+That's it! Your AI team is now running. Attach with: `tmux attach -t ai-team`
+
 ## 🎯 Quick Start
 
 ### Option 1: Basic Setup (Single Project)

@@ -3,9 +3,15 @@
 import subprocess
 import json
 import time
+import shlex
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
+from security_validator import SecurityValidator
+from logging_config import setup_logging, log_subprocess_call
+
+# Set up logging for this module
+logger = setup_logging(__name__)
 
 @dataclass
 class TmuxWindow:
@@ -67,20 +73,47 @@ class TmuxOrchestrator:
     
     def capture_window_content(self, session_name: str, window_index: int, num_lines: int = 50) -> str:
         """Safely capture the last N lines from a tmux window"""
+        # Validate inputs
+        valid, error = SecurityValidator.validate_session_name(session_name)
+        if not valid:
+            logger.error(f"Invalid session name: {error}")
+            return f"Error: {error}"
+        
+        valid, error = SecurityValidator.validate_window_index(str(window_index))
+        if not valid:
+            logger.error(f"Invalid window index: {error}")
+            return f"Error: {error}"
+        
         if num_lines > self.max_lines_capture:
             num_lines = self.max_lines_capture
             
         try:
-            cmd = ["tmux", "capture-pane", "-t", f"{session_name}:{window_index}", "-p", "-S", f"-{num_lines}"]
+            target = f"{session_name}:{window_index}"
+            cmd = ["tmux", "capture-pane", "-t", target, "-p", "-S", f"-{num_lines}"]
+            logger.debug(f"Capturing window content: {target}")
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return result.stdout
         except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to capture window content: {e}")
             return f"Error capturing window content: {e}"
     
     def get_window_info(self, session_name: str, window_index: int) -> Dict:
         """Get detailed information about a specific window"""
+        # Validate inputs
+        valid, error = SecurityValidator.validate_session_name(session_name)
+        if not valid:
+            logger.error(f"Invalid session name: {error}")
+            return {"error": f"Invalid session name: {error}"}
+        
+        valid, error = SecurityValidator.validate_window_index(str(window_index))
+        if not valid:
+            logger.error(f"Invalid window index: {error}")
+            return {"error": f"Invalid window index: {error}"}
+        
+        logger.debug(f"Getting window info for {session_name}:{window_index}")
         try:
-            cmd = ["tmux", "display-message", "-t", f"{session_name}:{window_index}", "-p", 
+            target = f"{session_name}:{window_index}"
+            cmd = ["tmux", "display-message", "-t", target, "-p", 
                    "#{window_name}:#{window_active}:#{window_panes}:#{window_layout}"]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             
@@ -97,34 +130,65 @@ class TmuxOrchestrator:
             return {"error": f"Could not get window info: {e}"}
     
     def send_keys_to_window(self, session_name: str, window_index: int, keys: str, confirm: bool = True) -> bool:
-        """Safely send keys to a tmux window with confirmation"""
+        """Safely send keys to a tmux window with validation"""
+        # Validate inputs
+        valid, error = SecurityValidator.validate_session_name(session_name)
+        if not valid:
+            logger.error(f"Invalid session name: {error}")
+            return False
+        
+        valid, error = SecurityValidator.validate_window_index(str(window_index))
+        if not valid:
+            logger.error(f"Invalid window index: {error}")
+            return False
+        
+        # Sanitize keys to prevent injection
+        try:
+            sanitized_keys = SecurityValidator.sanitize_message(keys)
+        except ValueError as e:
+            logger.error(f"Invalid keys: {e}")
+            return False
+        
         if self.safety_mode and confirm:
-            print(f"SAFETY CHECK: About to send '{keys}' to {session_name}:{window_index}")
+            print(f"SAFETY CHECK: About to send keys to {session_name}:{window_index}")
             response = input("Confirm? (yes/no): ")
             if response.lower() != 'yes':
                 print("Operation cancelled")
                 return False
         
         try:
-            cmd = ["tmux", "send-keys", "-t", f"{session_name}:{window_index}", keys]
+            target = f"{session_name}:{window_index}"
+            # Use literal keys to avoid shell interpretation
+            cmd = ["tmux", "send-keys", "-t", target, "-l", keys]
+            logger.info(f"Sending keys to {target}")
             subprocess.run(cmd, check=True)
             return True
         except subprocess.CalledProcessError as e:
-            print(f"Error sending keys: {e}")
+            logger.error(f"Error sending keys: {e}")
             return False
     
     def send_command_to_window(self, session_name: str, window_index: int, command: str, confirm: bool = True) -> bool:
         """Send a command to a window (adds Enter automatically)"""
+        # Validate and sanitize command
+        try:
+            sanitized_command = SecurityValidator.sanitize_command(command)
+        except ValueError as e:
+            logger.error(f"Invalid command: {e}")
+            return False
+        
         # First send the command text
         if not self.send_keys_to_window(session_name, window_index, command, confirm):
             return False
+        
         # Then send the actual Enter key (C-m)
         try:
-            cmd = ["tmux", "send-keys", "-t", f"{session_name}:{window_index}", "C-m"]
+            target = f"{session_name}:{window_index}"
+            cmd = ["tmux", "send-keys", "-t", target, "C-m"]
             subprocess.run(cmd, check=True)
+            logger.debug(f"Command sent successfully to {target}")
             return True
         except subprocess.CalledProcessError as e:
-            print(f"Error sending Enter key: {e}")
+            logger.error(f"Error sending Enter key: {e}")
             return False
     
     def get_all_windows_status(self) -> Dict:

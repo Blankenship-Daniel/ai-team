@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Send message to Claude agent in tmux window
+# Send message to Claude agent in tmux window/pane
 # Usage: send-claude-message.sh <session:window> <message>
+# Note: Includes 1-second delay to ensure prompt is fully typed before submission
 
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <session:window> <message>"
@@ -16,8 +17,8 @@ MESSAGE="$*"
 # Send the message
 tmux send-keys -t "$WINDOW" "$MESSAGE"
 
-# Wait 0.5 seconds for UI to register
-sleep 0.5
+# Wait 1 second for prompt to be fully typed before submitting
+sleep 1
 
 # Send Enter to submit
 tmux send-keys -t "$WINDOW" Enter

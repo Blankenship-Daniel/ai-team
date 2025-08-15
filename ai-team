@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""
+Global AI Team CLI wrapper
+"""
+
+import os
+import sys
+import subprocess
+
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MAIN_SCRIPT = os.path.join(SCRIPT_DIR, "create_ai_team.py")
+
+def main():
+    """Execute the main AI team creation script with all arguments"""
+    try:
+        # Pass all command line arguments to the main script
+        cmd = [sys.executable, MAIN_SCRIPT] + sys.argv[1:]
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+    except KeyboardInterrupt:
+        print("\n⚠️  Interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
