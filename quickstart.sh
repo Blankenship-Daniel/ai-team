@@ -94,10 +94,23 @@ else
     NEED_INSTALL=1
 fi
 
-# Check if core files exist
-if [ ! -f "create_ai_team.py" ] || [ ! -f "tmux_utils.py" ]; then
+# Check if we're in the Tmux-Orchestrator directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CURRENT_DIR="$(pwd)"
+
+# Check if core files exist (either locally or in script directory)
+if [ ! -f "create_ai_team.py" ] && [ ! -f "$SCRIPT_DIR/create_ai_team.py" ]; then
     echo -e "  ${RED}❌ Core files missing!${NC}"
-    handle_error "Required files not found. Are you in the Tmux-Orchestrator directory?"
+    handle_error "Cannot find Tmux-Orchestrator files. Installation may be corrupted."
+fi
+
+# Determine if we're running from the installation directory
+if [ -f "create_ai_team.py" ] && [ -f "tmux_utils.py" ]; then
+    RUNNING_FROM_INSTALL=true
+    echo -e "  ${GREEN}✅ Running from Tmux-Orchestrator directory${NC}"
+else
+    RUNNING_FROM_INSTALL=false
+    echo -e "  ${BLUE}📍 Running from project directory${NC}"
 fi
 
 # Create logs directory for Sam's logging system
@@ -105,6 +118,82 @@ if [ ! -d "logs" ]; then
     mkdir -p logs
     echo -e "  ${GREEN}✅ Created logs directory${NC}"
 fi
+
+# Step 2.5: Context Preservation Setup
+echo ""
+echo -e "${BLUE}🔐 Step 2.5: Preparing workspace context...${NC}"
+echo ""
+
+# The AI team will work in the current directory
+echo -e "  ${BLUE}Working directory: ${GREEN}$CURRENT_DIR${NC}"
+
+# Create .ai-team directory for context files
+if [ ! -d ".ai-team" ]; then
+    mkdir -p .ai-team
+    echo -e "  ${GREEN}✅ Created .ai-team directory for context${NC}"
+fi
+
+# Create workspace structure for agents
+mkdir -p .ai-team/workspaces/{orchestrator,alex,morgan,sam}
+echo -e "  ${GREEN}✅ Created agent workspace directories${NC}"
+
+# Create context documentation
+if [ ! -f ".ai-team/CONTEXT.md" ]; then
+    cat > .ai-team/CONTEXT.md << EOF
+# AI Team Context - $(date)
+
+## Working Directory
+Path: $CURRENT_DIR
+
+## Team Structure
+- **Orchestrator** (pane 0.0): Coordinates the team
+- **Alex** (pane 0.1): Perfectionist architect
+- **Morgan** (pane 0.2): Pragmatic shipper  
+- **Sam** (pane 0.3): Code custodian
+
+## Communication Protocol
+Use tmux send-keys or send-claude-message.sh:
+\`\`\`bash
+send-claude-message.sh ai-team:0.1 "Message to Alex"
+tmux capture-pane -t ai-team:0.1 -p | tail -20
+\`\`\`
+
+## Important Locations
+- Context: .ai-team/CONTEXT.md
+- Status: .ai-team/STATUS.md
+- Logs: logs/
+- Agent workspaces: .ai-team/workspaces/
+
+## Recovery
+If agents lose context, run: .ai-team/recovery.sh
+EOF
+    echo -e "  ${GREEN}✅ Created context documentation${NC}"
+fi
+
+# Create quick recovery script
+if [ ! -f ".ai-team/recovery.sh" ]; then
+    cat > .ai-team/recovery.sh << 'EOF'
+#!/bin/bash
+echo "🔧 AI Team Context Recovery"
+echo "Working directory: $(pwd)"
+echo ""
+echo "Re-establishing context for all agents..."
+for pane in 0 1 2 3; do
+    tmux send-keys -t ai-team:0.$pane "# Context restored: $(pwd)" Enter
+done
+echo "✅ Context restoration complete"
+EOF
+    chmod +x .ai-team/recovery.sh
+    echo -e "  ${GREEN}✅ Created recovery script${NC}"
+fi
+
+# Link communication script if needed
+if [ ! -f "send-claude-message.sh" ] && [ -f "$SCRIPT_DIR/send-claude-message.sh" ]; then
+    ln -sf "$SCRIPT_DIR/send-claude-message.sh" send-claude-message.sh
+    echo -e "  ${GREEN}✅ Linked communication script${NC}"
+fi
+
+echo -e "  ${GREEN}✅ Context preservation ready${NC}"
 
 # Run install.sh if needed
 if [ $NEED_INSTALL -eq 1 ]; then
@@ -218,6 +307,16 @@ if tmux has-session -t ai-team 2>/dev/null; then
     echo -e "  • Kill session:   ${CYAN}tmux kill-session -t ai-team${NC}"
     echo -e "  • Rename window:  ${CYAN}Ctrl+b${NC} then ${CYAN},${NC}"
     echo ""
+    
+    # Add context reminder if running from different directory
+    if [ "$CURRENT_DIR" != "$SCRIPT_DIR" ]; then
+        echo -e "${YELLOW}📁 Context Files:${NC}"
+        echo -e "  • Working in:     ${CYAN}$CURRENT_DIR${NC}"
+        echo -e "  • Context saved:  ${CYAN}.ai-team/CONTEXT.md${NC}"
+        echo -e "  • Status updates: ${CYAN}.ai-team/STATUS.md${NC}"
+        echo ""
+    fi
+    
     echo -e "${CYAN}═══════════════════════════════════════${NC}"
     echo -e "${GREEN}Ready to attach? Run:${NC} ${CYAN}tmux attach -t ai-team${NC}"
     echo -e "${CYAN}═══════════════════════════════════════${NC}"

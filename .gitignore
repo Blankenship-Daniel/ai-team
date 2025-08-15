@@ -59,6 +59,8 @@ next_check_note.txt
 *.pid
 *.lock
 .tmux-session-state
+.tmux-orchestrator-context
+restore_context.sh
 
 # Node (for frontend)
 node_modules/

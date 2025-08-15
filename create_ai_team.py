@@ -13,9 +13,11 @@ import sys
 import shlex
 from typing import Dict, List, Optional
 from dataclasses import dataclass
+from pathlib import Path
 from tmux_utils import TmuxOrchestrator
 from security_validator import SecurityValidator
 from logging_config import setup_logging, log_subprocess_call
+from unified_context_manager import UnifiedContextManager
 
 # Set up logging for this module
 logger = setup_logging(__name__)
@@ -35,6 +37,7 @@ class AITeamOrchestrator:
         self.agents: List[AgentProfile] = []
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.working_dir = os.getcwd()  # Capture the directory where user invoked the command
+        self.context_manager = UnifiedContextManager(install_dir=Path(self.script_dir))
         logger.info("AITeamOrchestrator initialized", extra={
             'script_dir': self.script_dir,
             'working_dir': self.working_dir
@@ -48,7 +51,7 @@ class AITeamOrchestrator:
             personality="PERFECTIONIST_ARCHITECT", 
             role="Senior Software Engineer",
             window_name="Agent-Alex",
-            briefing="""You are Alex, a senior software engineer with 15+ years of experience. You are:
+            briefing=f"""You are Alex, a senior software engineer with 15+ years of experience. You are:
 
 PERSONALITY TRAITS:
 - Extremely detail-oriented and perfectionist
@@ -72,7 +75,15 @@ CORE BELIEFS:
 - "Documentation is not optional"
 - "Technical debt always comes due with interest"
 
-When communicating with the other agents or orchestrator, be firm in your convictions but professional. Challenge ideas that compromise quality."""
+When communicating with the other agents or orchestrator, be firm in your convictions but professional. Challenge ideas that compromise quality.
+
+WORKING CONTEXT:
+- You're in directory: {self.working_dir}
+- You can read/write files and run commands
+- The orchestrator is in pane 0.0
+- You are in pane 0.1
+- Morgan is in pane 0.2, Sam is in pane 0.3
+- Always use absolute paths when needed"""
         )
         
         agent2 = AgentProfile(
@@ -80,7 +91,7 @@ When communicating with the other agents or orchestrator, be firm in your convic
             personality="SHIP_IT_ENGINEER",
             role="Full-Stack Developer", 
             window_name="Agent-Morgan",
-            briefing="""You are Morgan, a full-stack developer focused on shipping products. You are:
+            briefing=f"""You are Morgan, a full-stack developer focused on shipping products. You are:
 
 PERSONALITY TRAITS:
 - Results-oriented and deadline-driven
@@ -104,7 +115,15 @@ CORE BELIEFS:
 - "Technical debt is manageable if you're intentional about it"
 - "The best code is code that solves real problems for users"
 
-When communicating with the other agents or orchestrator, advocate for pragmatic solutions that deliver value quickly while acknowledging trade-offs."""
+When communicating with the other agents or orchestrator, advocate for pragmatic solutions that deliver value quickly while acknowledging trade-offs.
+
+WORKING CONTEXT:
+- You're in directory: {self.working_dir}
+- You can read/write files and run commands
+- The orchestrator is in pane 0.0
+- Alex is in pane 0.1
+- You are in pane 0.2, Sam is in pane 0.3
+- Always use absolute paths when needed"""
         )
         
         agent3 = AgentProfile(
@@ -112,7 +131,7 @@ When communicating with the other agents or orchestrator, advocate for pragmatic
             personality="CODE_CUSTODIAN",
             role="Code Quality Engineer",
             window_name="Agent-Sam",
-            briefing="""You are Sam, a code quality engineer specializing in technical debt management and code hygiene. You are:
+            briefing=f"""You are Sam, a code quality engineer specializing in technical debt management and code hygiene. You are:
 
 PERSONALITY TRAITS:
 - Obsessed with code cleanliness and consistency
@@ -147,7 +166,15 @@ SPECIAL FOCUS AREAS:
 - Deprecated API migrations
 - Build and CI/CD pipeline optimization
 
-When communicating with other agents or orchestrator, advocate for allocating time to cleanup and maintenance. Balance urgency with importance, and help the team understand the long-term cost of ignoring technical debt."""
+When communicating with other agents or orchestrator, advocate for allocating time to cleanup and maintenance. Balance urgency with importance, and help the team understand the long-term cost of ignoring technical debt.
+
+WORKING CONTEXT:
+- You're in directory: {self.working_dir}
+- You can read/write files and run commands
+- The orchestrator is in pane 0.0
+- Alex is in pane 0.1, Morgan is in pane 0.2
+- You are in pane 0.3
+- Always use absolute paths when needed"""
         )
         
         return [agent1, agent2, agent3]
@@ -337,10 +364,18 @@ When communicating with other agents or orchestrator, advocate for allocating ti
                     print(f"✗ Invalid pane target {pane_target}: {error}")
                     continue
                 
+                # Enhance briefing with embedded context and ensure workspace
+                workspace = self.context_manager.ensure_workspace(self.session_name, agent.name)
+                enhanced_briefing = self.context_manager.inject_context_into_briefing(
+                    agent.briefing, 
+                    agent.role.lower().replace(" ", "_")
+                )
+                logger.debug(f"Agent {agent.name} workspace: {workspace.path}")
+                
                 # Send the briefing with proper escaping
-                sanitized_briefing = SecurityValidator.sanitize_message(agent.briefing)
+                sanitized_briefing = SecurityValidator.sanitize_message(enhanced_briefing)
                 cmd = [send_script, pane_target, sanitized_briefing]
-                logger.debug(f"Briefing {agent.name} with {len(sanitized_briefing)} chars")
+                logger.debug(f"Briefing {agent.name} with {len(sanitized_briefing)} chars (enhanced from {len(agent.briefing)})")
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 log_subprocess_call(logger, cmd[:2] + ["<briefing_text>"], result)  # Don't log full briefing
                 
@@ -411,6 +446,13 @@ COMMUNICATION PROTOCOLS:
 - Example: send-claude-message.sh {self.session_name}:0.3 "Sam, what technical debt do you see here?"
 - Check agent progress: tmux capture-pane -t {self.session_name}:0.1 -p | tail -20
 
+CRITICAL CONTEXT:
+- Working directory: {self.working_dir}
+- You can read files with: cat <filename>
+- You can write files with: echo "content" > filename
+- You can run commands with: <command>
+- Always use absolute paths when accessing files outside the current directory
+
 PANE NAVIGATION:
 - Use Ctrl+B, then arrow keys to move between panes
 - All agents are visible simultaneously in the split view
@@ -438,7 +480,17 @@ Start by introducing yourself to all three agents and asking them to introduce t
                 print(f"✗ Invalid orchestrator target: {error}")
                 return False
             
-            sanitized_briefing = SecurityValidator.sanitize_message(orchestrator_briefing)
+            # Enhance orchestrator briefing with context and create workspace
+            orchestrator_workspace = self.context_manager.ensure_workspace(
+                self.session_name, "Orchestrator"
+            )
+            enhanced_orchestrator_briefing = self.context_manager.inject_context_into_briefing(
+                orchestrator_briefing,
+                "orchestrator"
+            )
+            logger.debug(f"Orchestrator workspace: {orchestrator_workspace.path}")
+            
+            sanitized_briefing = SecurityValidator.sanitize_message(enhanced_orchestrator_briefing)
             subprocess.run([
                 send_script, orchestrator_target, sanitized_briefing
             ], check=True)
@@ -515,6 +567,23 @@ Start by introducing yourself to all three agents and asking them to introduce t
         print("\n🎯 Setting up orchestrator...")
         if not self.setup_orchestrator():
             return False
+        
+        # Create recovery script and verify agent readiness
+        try:
+            self.context_manager.create_recovery_script()
+            logger.info("Created recovery script in working directory")
+            
+            # Verify all agents are ready
+            for agent in self.agents:
+                is_ready, issues = self.context_manager.verify_agent_readiness(
+                    self.session_name, agent.name
+                )
+                if not is_ready:
+                    logger.warning(f"Agent {agent.name} has issues: {issues}")
+                else:
+                    logger.info(f"Agent {agent.name} verified and ready")
+        except Exception as e:
+            logger.warning(f"Could not complete setup verification: {e}")
         
         # Display team info
         self.display_team_info()
