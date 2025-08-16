@@ -103,8 +103,8 @@ class TestAgentWorkspaceCreation:
         assert context_data['version'] == '2.0'
         assert context_data['session'] == 'context-test'
         assert context_data['agent'] == 'morgan-shipper'
-        assert context_data['install_dir'] == str(install_dir)
-        assert context_data['working_dir'] == str(temp_dir)
+        assert Path(context_data['install_dir']).resolve() == install_dir.resolve()
+        assert Path(context_data['working_dir']).resolve() == temp_dir.resolve()
         assert 'core_context' in context_data
         assert 'timestamp' in context_data
     
@@ -127,7 +127,7 @@ class TestAgentWorkspaceCreation:
         assert 'Current Status' in status_content
         assert 'Tasks' in status_content
         assert 'Initialize workspace' in status_content
-        assert 'Context Version: 2.0' in status_content
+        assert '**Context Version**: 2.0' in status_content
     
     @pytest.mark.unit
     def test_symlink_creation(self, temp_dir):

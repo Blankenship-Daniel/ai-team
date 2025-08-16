@@ -276,6 +276,7 @@ If you lose context, create the tools using the scripts provided above."""
     
     def _create_context_file(self, context_file: Path, session_name: str, agent_name: str):
         """Create JSON context file in workspace"""
+        from datetime import datetime
         context_data = {
             "version": "2.0",
             "session": session_name,
@@ -283,7 +284,7 @@ If you lose context, create the tools using the scripts provided above."""
             "install_dir": str(self.install_dir),
             "working_dir": str(self.working_dir),
             "core_context": self.CORE_CONTEXT,
-            "timestamp": str(Path.cwd()),
+            "timestamp": datetime.now().isoformat(),
             "note": "Workspace context for agent operation"
         }
         
@@ -296,10 +297,11 @@ If you lose context, create the tools using the scripts provided above."""
     
     def _create_status_file(self, status_file: Path, agent_name: str):
         """Create initial status file for agent"""
+        from datetime import datetime
         status_content = f"""# Agent Status: {agent_name}
 
 ## Current Status
-- **Created**: {Path.cwd()}
+- **Created**: {datetime.now().isoformat()}
 - **Working Directory**: {self.working_dir}
 - **Context Version**: 2.0
 
