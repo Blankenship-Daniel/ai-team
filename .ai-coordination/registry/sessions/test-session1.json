@@ -1,0 +1,10 @@
+{
+  "session_name": "test-session1",
+  "bridges": [
+    "bridge-88a0547887b9",
+    "bridge-491cbedb7485",
+    "bridge-8346e8f7b703"
+  ],
+  "created_at": "2025-08-16T17:01:34.088745",
+  "last_updated": "2025-08-16T18:05:39.375404"
+}

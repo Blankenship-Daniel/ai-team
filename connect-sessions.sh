@@ -48,8 +48,8 @@ cat > "$COORD_DIR/team_status/${TEAM1_SESSION}-team.json" << EOF
   "team_name": "${TEAM1_SESSION}-team",
   "session_name": "$TEAM1_SESSION",
   "orchestrator_pane": "0.0",
-  "registered_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
-  "last_seen": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+  "registered_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
+  "last_seen": "$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
   "status": "active",
   "capabilities": ["general_development"],
   "current_work": []
@@ -62,8 +62,8 @@ cat > "$COORD_DIR/team_status/${TEAM2_SESSION}-team.json" << EOF
   "team_name": "${TEAM2_SESSION}-team",
   "session_name": "$TEAM2_SESSION",
   "orchestrator_pane": "0.0",
-  "registered_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
-  "last_seen": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+  "registered_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
+  "last_seen": "$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
   "status": "active",
   "capabilities": ["general_development"],
   "current_work": []
@@ -81,15 +81,15 @@ OTHER_TEAM="${TEAM2_SESSION}-team"
 case "\$1" in
     "send")
         # Send message to other team
-        MESSAGE_ID="\${TEAM_NAME}-\$(date +%s%3N)"
+        MESSAGE_ID="\${TEAM_NAME}-\$(date +%s%S)"
         cat > ".ai-coordination/messages/\${MESSAGE_ID}.json" << MSGEOF
 {
   "from_team": "\$TEAM_NAME",
-  "to_team": "\$OTHER_TEAM", 
+  "to_team": "\$OTHER_TEAM",
   "message_type": "message",
   "content": "\$2",
   "priority": "normal",
-  "timestamp": "\$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+  "timestamp": "\$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
   "message_id": "\$MESSAGE_ID"
 }
 MSGEOF
@@ -146,15 +146,15 @@ OTHER_TEAM="${TEAM1_SESSION}-team"
 case "\$1" in
     "send")
         # Send message to other team
-        MESSAGE_ID="\${TEAM_NAME}-\$(date +%s%3N)"
+        MESSAGE_ID="\${TEAM_NAME}-\$(date +%s%S)"
         cat > ".ai-coordination/messages/\${MESSAGE_ID}.json" << MSGEOF
 {
   "from_team": "\$TEAM_NAME",
-  "to_team": "\$OTHER_TEAM", 
+  "to_team": "\$OTHER_TEAM",
   "message_type": "message",
   "content": "\$2",
   "priority": "normal",
-  "timestamp": "\$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+  "timestamp": "\$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
   "message_id": "\$MESSAGE_ID"
 }
 MSGEOF
@@ -207,15 +207,15 @@ chmod +x "team-coord-${TEAM2_SESSION}.sh"
 cat > "$COORD_DIR/work_queue.json" << EOF
 [
   {
-    "item_id": "work-$(date +%s%3N)",
+    "item_id": "work-$(date +%s%S)",
     "title": "Coordinate between teams",
     "description": "Test the multi-team coordination system",
     "assigned_team": null,
     "status": "pending",
     "priority": "normal",
     "created_by": "connect-sessions-script",
-    "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
-    "updated_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+    "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
+    "updated_at": "$(date -u +"%Y-%m-%dT%H:%M:%S.%SZ")",
     "dependencies": []
   }
 ]

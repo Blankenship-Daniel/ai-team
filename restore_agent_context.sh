@@ -22,7 +22,7 @@ cat > send-claude-message.sh << 'EOF'
 WINDOW="$1"
 shift
 MESSAGE="$*"
-tmux send-keys -t "$WINDOW" "$MESSAGE"
+tmux send-keys -t "$WINDOW" "$(printf '%q' "$MESSAGE")"
 sleep 1
 tmux send-keys -t "$WINDOW" Enter
 echo "Message sent to $WINDOW: $MESSAGE"
@@ -50,7 +50,7 @@ if [ ! -f "./send-claude-message.sh" ]; then
 WINDOW="$1"
 shift
 MESSAGE="$*"
-tmux send-keys -t "$WINDOW" "$MESSAGE"
+tmux send-keys -t "$WINDOW" "$(printf '%q' "$MESSAGE")"
 sleep 1
 tmux send-keys -t "$WINDOW" Enter
 echo "Message sent to $WINDOW: $MESSAGE"

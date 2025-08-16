@@ -1,0 +1,9 @@
+{
+  "bridge_id": "bridge-7ac873de7552",
+  "session1": "frontend-team",
+  "session2": "qa-team",
+  "coordination_context": "Testing coordination and bug reporting",
+  "created_at": "2025-08-16T17:18:11.969415",
+  "status": "active",
+  "last_activity": "2025-08-16T17:18:11.969419"
+}

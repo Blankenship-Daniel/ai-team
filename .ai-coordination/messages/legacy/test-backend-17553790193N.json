@@ -1,0 +1,7 @@
+{
+  "from_session": "test-backend",
+  "to_session": "test-frontend",
+  "message": "Got your message! API endpoints: POST /auth/login, GET /auth/profile",
+  "timestamp": "2025-08-16T21:16:59.3NZ",
+  "message_id": "test-backend-17553790193N"
+}

@@ -10,15 +10,16 @@ import subprocess
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_SCRIPT = os.path.join(SCRIPT_DIR, "create_ai_team.py")
-CONNECT_SCRIPT = os.path.join(SCRIPT_DIR, "ai-team-connect.py")
+CONNECT_SCRIPT = os.path.join(SCRIPT_DIR, "ai-bridge")
+
 
 def main():
     """Execute appropriate script based on command"""
     try:
         # Check if this is a connect command
         if len(sys.argv) > 1 and sys.argv[1] == "connect":
-            # Use connect script
-            cmd = [sys.executable, CONNECT_SCRIPT] + sys.argv[2:]
+            # Use bridge registry with create command
+            cmd = [sys.executable, CONNECT_SCRIPT, "create"] + sys.argv[2:]
             subprocess.run(cmd, check=True)
         else:
             # Use main team creation script
@@ -32,6 +33,7 @@ def main():
     except Exception as e:
         print(f"❌ Error: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

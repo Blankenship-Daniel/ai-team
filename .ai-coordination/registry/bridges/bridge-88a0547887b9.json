@@ -1,0 +1,9 @@
+{
+  "bridge_id": "bridge-88a0547887b9",
+  "session1": "test-session1",
+  "session2": "test-session2",
+  "coordination_context": "Testing multi-bridge functionality",
+  "created_at": "2025-08-16T17:01:34.088564",
+  "status": "active",
+  "last_activity": "2025-08-16T17:01:34.088573"
+}

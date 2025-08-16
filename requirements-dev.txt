@@ -1,0 +1,22 @@
+# Development and Quality Tools
+# Testing framework
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-xdist>=3.0.0  # Parallel test execution
+
+# Code formatting and linting
+black>=23.0.0
+flake8>=6.0.0
+flake8-docstrings>=1.7.0
+flake8-import-order>=0.18.0
+
+# Type checking
+mypy>=1.0.0
+types-requests  # If we add requests later
+
+# Pre-commit hooks
+pre-commit>=3.0.0
+
+# Security scanning
+bandit>=1.7.0
+safety>=2.0.0

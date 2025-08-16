@@ -1,0 +1,7 @@
+{
+  "from_session": "test-fix1",
+  "to_session": "test-fix2",
+  "message": "Testing special chars: $var, @user, #hashtag, %percent, quotes"test", backticks`cmd`",
+  "timestamp": "2025-08-16T21:24:18.3NZ",
+  "message_id": "test-fix1-1755379458468"
+}

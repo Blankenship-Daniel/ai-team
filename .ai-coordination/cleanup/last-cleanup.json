@@ -1,0 +1,10 @@
+{
+  "cleanup_time": "2025-08-16T17:49:58.730495",
+  "max_age_days": 7,
+  "stats": {
+    "bridges_removed": 0,
+    "messages_removed": 0,
+    "space_freed": 0,
+    "errors": []
+  }
+}

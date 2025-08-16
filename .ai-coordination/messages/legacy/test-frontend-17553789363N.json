@@ -1,0 +1,7 @@
+{
+  "from_session": "test-frontend",
+  "to_session": "test-backend",
+  "message": "Hello from frontend team! We need to discuss the authentication API endpoints.",
+  "timestamp": "2025-08-16T21:15:36.3NZ",
+  "message_id": "test-frontend-17553789363N"
+}

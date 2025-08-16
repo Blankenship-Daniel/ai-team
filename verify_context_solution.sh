@@ -112,7 +112,7 @@ manager = UnifiedContextManager(install_dir=Path('$ORIGINAL_DIR'))
 script = manager.create_recovery_script()
 print('Created:', script)
 " 2>/dev/null
-    
+
     if [ -f "restore_agent_context.sh" ]; then
         echo -e "${GREEN}✓ Recovery script created${NC}"
     else
@@ -134,7 +134,7 @@ cat > send-claude-message.sh << 'TOOL'
 WINDOW="$1"
 shift
 MESSAGE="$*"
-tmux send-keys -t "$WINDOW" "$MESSAGE"
+tmux send-keys -t "$WINDOW" -l "$MESSAGE"
 sleep 1
 tmux send-keys -t "$WINDOW" Enter
 echo "Message sent to $WINDOW: $MESSAGE"
