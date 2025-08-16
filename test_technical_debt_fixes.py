@@ -32,19 +32,15 @@ echo "$MESSAGE_ID"
             if result.returncode == 0:
                 output = result.stdout.strip()
                 # Should be format: test-1234567890123 (13 digits after test-)
-                if output.startswith("test-") and len(output.split("-")[1]) == 13:
-                    logger.info(f"✅ Timestamp format test passed: {output}")
-                    return True
-                else:
-                    logger.error(f"❌ Timestamp format incorrect: {output}")
-                    return False
+                assert output.startswith("test-"), f"Output should start with 'test-': {output}"
+                assert len(output.split("-")[1]) == 13, f"Timestamp should be 13 digits: {output}"
+                logger.info(f"✅ Timestamp format test passed: {output}")
             else:
-                logger.error(f"❌ Timestamp test failed: {result.stderr}")
-                return False
+                assert False, f"Timestamp test failed: {result.stderr}"
 
     except Exception as e:
         logger.error(f"❌ Timestamp test error: {e}")
-        return False
+        assert False, f"Timestamp test error: {e}"
     finally:
         try:
             Path(f.name).unlink()
@@ -117,7 +113,7 @@ fi
             pass
 
     logger.info(f"Shell escaping tests: {passed} passed, {failed} failed")
-    return failed == 0
+    assert failed == 0, f"Shell escaping tests failed: {failed} failures"
 
 
 def test_tmux_send_keys_safety():
@@ -154,7 +150,7 @@ def test_tmux_send_keys_safety():
             failed += 1
 
     logger.info(f"Tmux safety tests: {passed} passed, {failed} failed")
-    return failed == 0
+    assert failed == 0, f"Tmux safety tests failed: {failed} failures"
 
 
 def main():

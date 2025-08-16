@@ -75,9 +75,13 @@ class BridgeRegistry:
         # Update legacy bridge_context.json for backwards compatibility
         self._update_legacy_config(bridge_config)
 
+        # Generate communication scripts
+        self._generate_communication_scripts(session1, session2, bridge_id)
+
         print(f"✅ Bridge created: {bridge_id}")
         print(f"   {session1} ↔ {session2}")
         print(f"   Context: {context}")
+        print(f"   📤 Scripts: send-to-peer-{session1}.sh, send-to-peer-{session2}.sh")
 
         return bridge_id
 
@@ -195,6 +199,73 @@ class BridgeRegistry:
                     peers.append((bridge_data["session1"], bridge_id))
 
         return peers
+
+    def _generate_communication_scripts(self, session1: str, session2: str, bridge_id: str):
+        """Generate send-to-peer scripts for bridge communication"""
+        # Script for session1 to send to session2
+        script1_content = f'''#!/bin/bash
+# Send message from {session1} to {session2} via bridge {bridge_id}
+MESSAGE="$1"
+if [ -z "$MESSAGE" ]; then
+    echo "Usage: $0 <message>"
+    exit 1
+fi
+
+MESSAGE_ID="{session1}-$(date +%s%N | cut -c1-13)"
+cat > .ai-coordination/messages/${{MESSAGE_ID}}.json << EOF
+{{
+  "from_session": "{session1}",
+  "to_session": "{session2}",
+  "message": "$MESSAGE",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+  "message_id": "$MESSAGE_ID",
+  "bridge_id": "{bridge_id}"
+}}
+EOF
+
+echo "✅ Message sent to {session2}: $MESSAGE"
+# Notify peer session about new message
+tmux send-keys -t "{session2}:0.0" "📨 New message from {session1}: $(printf '%q' "$MESSAGE")" Enter 2>/dev/null || true
+'''
+
+        # Script for session2 to send to session1
+        script2_content = f'''#!/bin/bash
+# Send message from {session2} to {session1} via bridge {bridge_id}
+MESSAGE="$1"
+if [ -z "$MESSAGE" ]; then
+    echo "Usage: $0 <message>"
+    exit 1
+fi
+
+MESSAGE_ID="{session2}-$(date +%s%N | cut -c1-13)"
+cat > .ai-coordination/messages/${{MESSAGE_ID}}.json << EOF
+{{
+  "from_session": "{session2}",
+  "to_session": "{session1}",
+  "message": "$MESSAGE",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")",
+  "message_id": "$MESSAGE_ID",
+  "bridge_id": "{bridge_id}"
+}}
+EOF
+
+echo "✅ Message sent to {session1}: $MESSAGE"
+# Notify peer session about new message
+tmux send-keys -t "{session1}:0.0" "📨 New message from {session2}: $(printf '%q' "$MESSAGE")" Enter 2>/dev/null || true
+'''
+
+        # Write script files
+        script1_path = Path(f"send-to-peer-{session1}.sh")
+        script2_path = Path(f"send-to-peer-{session2}.sh")
+        
+        with open(script1_path, 'w') as f:
+            f.write(script1_content)
+        with open(script2_path, 'w') as f:
+            f.write(script2_content)
+        
+        # Make scripts executable
+        script1_path.chmod(0o755)
+        script2_path.chmod(0o755)
 
     def cleanup_old_bridges(self, max_age_days: int = 7, dry_run: bool = False) -> Dict:
         """Clean up old bridges and messages"""

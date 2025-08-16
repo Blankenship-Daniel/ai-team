@@ -9,7 +9,9 @@ import logging.handlers
 import os
 from pathlib import Path
 
-def setup_logging(name: str, log_dir: str = None, console_level: str = "INFO", file_level: str = "DEBUG") -> logging.Logger:
+from typing import Optional
+
+def setup_logging(name: str, log_dir: Optional[str] = None, console_level: str = "INFO", file_level: str = "DEBUG") -> logging.Logger:
     """
     Set up a logger with both console and rotating file handlers
     

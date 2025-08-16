@@ -6,6 +6,7 @@ Replaces shell=True calls with secure alternatives and fixes resource leaks
 
 import subprocess
 import shlex
+import shutil
 import os
 import signal
 import psutil

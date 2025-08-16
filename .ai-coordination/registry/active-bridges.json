@@ -1,6 +1,14 @@
 {
   "active_bridges": [
     {
+      "bridge_id": "bridge-542647ec41c0",
+      "session1": "test-alex",
+      "session2": "test-morgan",
+      "context": "Architecture coordination on type safety patterns",
+      "created_at": "2025-08-16T18:20:32.772604",
+      "last_activity": "2025-08-16T18:20:32.772612"
+    },
+    {
       "bridge_id": "bridge-b869a67f818e",
       "session1": "backend-team",
       "session2": "qa-team",
@@ -55,8 +63,16 @@
       "context": "Mobile and web UI consistency coordination",
       "created_at": "2025-08-16T17:23:51.961408",
       "last_activity": "2025-08-16T17:23:51.961413"
+    },
+    {
+      "bridge_id": "bridge-592c1df32296",
+      "session1": "Tmux-Orchestrator",
+      "session2": "test-session2",
+      "context": "Morgan testing context messaging flow",
+      "created_at": "2025-08-16T18:19:09.797889",
+      "last_activity": "2025-08-16T18:19:09.797896"
     }
   ],
-  "total_bridges": 7,
-  "last_updated": "2025-08-16T18:05:39.377063"
+  "total_bridges": 9,
+  "last_updated": "2025-08-16T18:20:32.773598"
 }
