@@ -81,7 +81,7 @@ fi
 
 # Verify all required files exist before installation
 echo -e "${BLUE}🔍 Verifying required files...${NC}"
-REQUIRED_FILES=("create_ai_team.py" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "send-claude-message.sh" "schedule_with_note.sh" "ai-team")
+REQUIRED_FILES=("create_ai_team.py" "ai-team-connect.py" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "send-claude-message.sh" "schedule_with_note.sh" "ai-team")
 
 for file in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$SOURCE_DIR/$file" ]; then
@@ -97,6 +97,10 @@ echo -e "${BLUE}📦 Installing AI Team CLI...${NC}"
 # Copy main Python script
 cp "$SOURCE_DIR/create_ai_team.py" "$INSTALL_DIR/"
 echo -e "${GREEN}✓ Copied create_ai_team.py${NC}"
+
+# Copy connect script
+cp "$SOURCE_DIR/ai-team-connect.py" "$INSTALL_DIR/"
+echo -e "${GREEN}✓ Copied ai-team-connect.py${NC}"
 
 # Copy Python dependencies
 cp "$SOURCE_DIR/tmux_utils.py" "$INSTALL_DIR/"
@@ -150,6 +154,7 @@ echo -e "${GREEN}🎉 AI Team CLI installed successfully!${NC}"
 echo ""
 echo "Files installed:"
 echo "  • create_ai_team.py (main script)"
+echo "  • ai-team-connect.py (multi-team coordination)"
 echo "  • tmux_utils.py (tmux management)"
 echo "  • security_validator.py (input validation)"
 echo "  • logging_config.py (logging setup)"
@@ -161,7 +166,8 @@ echo "  • context-status.sh (quick context restoration)"
 echo "  • ai-team (command wrapper)"
 echo ""
 echo "Usage:"
-echo -e "  ${BLUE}ai-team${NC}                    # Create default team"
+echo -e "  ${BLUE}ai-team${NC}                                           # Create default team"
+echo -e "  ${BLUE}ai-team connect session1 session2 \"context\"${NC}     # Connect two teams"
 echo -e "  ${BLUE}ai-team -s my-team${NC}         # Create with custom name"
 echo -e "  ${BLUE}ai-team --help${NC}             # Show help"
 echo ""

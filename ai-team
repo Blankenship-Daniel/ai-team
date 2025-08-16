@@ -10,13 +10,20 @@ import subprocess
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_SCRIPT = os.path.join(SCRIPT_DIR, "create_ai_team.py")
+CONNECT_SCRIPT = os.path.join(SCRIPT_DIR, "ai-team-connect.py")
 
 def main():
-    """Execute the main AI team creation script with all arguments"""
+    """Execute appropriate script based on command"""
     try:
-        # Pass all command line arguments to the main script
-        cmd = [sys.executable, MAIN_SCRIPT] + sys.argv[1:]
-        subprocess.run(cmd, check=True)
+        # Check if this is a connect command
+        if len(sys.argv) > 1 and sys.argv[1] == "connect":
+            # Use connect script
+            cmd = [sys.executable, CONNECT_SCRIPT] + sys.argv[2:]
+            subprocess.run(cmd, check=True)
+        else:
+            # Use main team creation script
+            cmd = [sys.executable, MAIN_SCRIPT] + sys.argv[1:]
+            subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
     except KeyboardInterrupt:

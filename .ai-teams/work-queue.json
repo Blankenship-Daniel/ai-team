@@ -1,0 +1,26 @@
+{
+  "teams": {
+    "test-team": {
+      "session": "\"Tmux-Orchestrator\"",
+      "registered": "2025-08-16T20:46:46Z",
+      "status": "active"
+    }
+  },
+  "tasks": [
+    {
+      "id": "2f540c55",
+      "description": "Build user dashboard",
+      "assignee": "frontend-team",
+      "status": "pending",
+      "created": "2025-08-16T20:46:46Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "350f4e8b",
+      "message": "Starting coordinated development!",
+      "from": "test-team",
+      "timestamp": "2025-08-16T20:46:56Z"
+    }
+  ]
+}

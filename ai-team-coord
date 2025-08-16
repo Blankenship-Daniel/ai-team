@@ -1,0 +1,187 @@
+#!/bin/bash
+# AI Team Coordination - Simple multi-team work queue
+
+COORD_DIR="${AI_TEAM_COORD_DIR:-.ai-teams}"
+WORK_QUEUE="$COORD_DIR/work-queue.json"
+
+# Ensure coordination directory exists
+mkdir -p "$COORD_DIR"
+
+# Initialize work queue if it doesn't exist
+if [ ! -f "$WORK_QUEUE" ]; then
+    echo '{"teams": {}, "tasks": [], "messages": []}' > "$WORK_QUEUE"
+fi
+
+case "$1" in
+    "register")
+        TEAM_NAME="$2"
+        [ -z "$TEAM_NAME" ] && echo "Usage: $0 register <team-name>" && exit 1
+        
+        # Register team
+        python3 -c "
+import json, sys
+with open('$WORK_QUEUE', 'r+') as f:
+    data = json.load(f)
+    data['teams']['$TEAM_NAME'] = {
+        'session': '$(tmux display-message -p \"#{session_name}\")',
+        'registered': '$(date -u +%Y-%m-%dT%H:%M:%SZ)',
+        'status': 'active'
+    }
+    f.seek(0)
+    json.dump(data, f, indent=2)
+    f.truncate()
+print('✅ Team $TEAM_NAME registered')
+"
+        ;;
+        
+    "add-task")
+        TASK="$2"
+        ASSIGNEE="${3:-any}"
+        [ -z "$TASK" ] && echo "Usage: $0 add-task '<description>' [assignee]" && exit 1
+        
+        python3 -c "
+import json, uuid, sys
+with open('$WORK_QUEUE', 'r+') as f:
+    data = json.load(f)
+    task = {
+        'id': str(uuid.uuid4())[:8],
+        'description': '$TASK',
+        'assignee': '$ASSIGNEE',
+        'status': 'pending',
+        'created': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+    }
+    data['tasks'].append(task)
+    f.seek(0)
+    json.dump(data, f, indent=2)
+    f.truncate()
+print('📋 Task added:', task['id'])
+"
+        ;;
+        
+    "claim-task")
+        TEAM_NAME="$2"
+        [ -z "$TEAM_NAME" ] && echo "Usage: $0 claim-task <team-name>" && exit 1
+        
+        python3 -c "
+import json
+with open('$WORK_QUEUE', 'r+') as f:
+    data = json.load(f)
+    for task in data['tasks']:
+        if task['status'] == 'pending' and (task['assignee'] == 'any' or task['assignee'] == '$TEAM_NAME'):
+            task['status'] = 'claimed'
+            task['claimed_by'] = '$TEAM_NAME'
+            task['claimed_at'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+            f.seek(0)
+            json.dump(data, f, indent=2)
+            f.truncate()
+            print('🎯 Claimed task:', task['id'], '-', task['description'])
+            exit(0)
+    print('❌ No available tasks for $TEAM_NAME')
+"
+        ;;
+        
+    "complete-task")
+        TASK_ID="$2"
+        TEAM_NAME="$3"
+        [ -z "$TASK_ID" ] && echo "Usage: $0 complete-task <task-id> <team-name>" && exit 1
+        
+        python3 -c "
+import json
+with open('$WORK_QUEUE', 'r+') as f:
+    data = json.load(f)
+    for task in data['tasks']:
+        if task['id'] == '$TASK_ID' and task.get('claimed_by') == '$TEAM_NAME':
+            task['status'] = 'completed'
+            task['completed_at'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+            f.seek(0)
+            json.dump(data, f, indent=2)
+            f.truncate()
+            print('✅ Task completed:', task['id'])
+            exit(0)
+    print('❌ Task not found or not claimed by $TEAM_NAME')
+"
+        ;;
+        
+    "broadcast")
+        MESSAGE="$2"
+        FROM_TEAM="$3"
+        [ -z "$MESSAGE" ] && echo "Usage: $0 broadcast '<message>' [from-team]" && exit 1
+        
+        python3 -c "
+import json, uuid
+with open('$WORK_QUEUE', 'r+') as f:
+    data = json.load(f)
+    msg = {
+        'id': str(uuid.uuid4())[:8],
+        'message': '$MESSAGE',
+        'from': '${FROM_TEAM:-system}',
+        'timestamp': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+    }
+    data['messages'].append(msg)
+    # Keep only last 50 messages
+    data['messages'] = data['messages'][-50:]
+    f.seek(0)
+    json.dump(data, f, indent=2)
+    f.truncate()
+print('📢 Message broadcasted')
+"
+        ;;
+        
+    "status")
+        echo "🤖 AI Team Coordination Status"
+        echo "=============================="
+        python3 -c "
+import json
+with open('$WORK_QUEUE', 'r') as f:
+    data = json.load(f)
+
+print(f'Teams: {len(data[\"teams\"])}')
+for name, info in data['teams'].items():
+    print(f'  - {name}: {info[\"status\"]} (session: {info[\"session\"]})')
+
+print(f'\\nTasks: {len(data[\"tasks\"])}')
+for task in data['tasks'][-10:]:  # Show last 10 tasks
+    status = task['status']
+    assignee = task.get('claimed_by', task['assignee'])
+    print(f'  - {task[\"id\"]}: {status} -> {assignee} - {task[\"description\"][:50]}...')
+
+print(f'\\nRecent Messages: {len(data[\"messages\"])}')
+for msg in data['messages'][-5:]:  # Show last 5 messages
+    print(f'  - [{msg[\"from\"]}]: {msg[\"message\"][:60]}...')
+"
+        ;;
+        
+    "watch")
+        echo "👀 Watching for coordination updates... (Ctrl+C to stop)"
+        while true; do
+            if [ "$WORK_QUEUE" -nt "/tmp/last_coord_check" ]; then
+                touch "/tmp/last_coord_check"
+                echo "🔄 $(date): Work queue updated"
+                $0 status
+                echo ""
+            fi
+            sleep 2
+        done
+        ;;
+        
+    *)
+        echo "AI Team Coordination"
+        echo ""
+        echo "Usage: $0 <command> [args...]"
+        echo ""
+        echo "Commands:"
+        echo "  register <team-name>           Register your team"
+        echo "  add-task '<desc>' [assignee]   Add task to queue"
+        echo "  claim-task <team-name>         Claim available task"
+        echo "  complete-task <id> <team>      Mark task complete"
+        echo "  broadcast '<message>' [from]   Send message to all teams"
+        echo "  status                         Show current status"
+        echo "  watch                          Watch for updates"
+        echo ""
+        echo "Examples:"
+        echo "  $0 register frontend-team"
+        echo "  $0 add-task 'Fix login bug' backend-team"
+        echo "  $0 claim-task frontend-team"
+        echo "  $0 broadcast 'Deploy ready!' frontend-team"
+        ;;
+esac
