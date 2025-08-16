@@ -2,6 +2,25 @@
 
 set -e
 
+# Parse command line arguments
+AUTO_YES=false
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "AI Team Quick Start"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --yes, -y    Non-interactive mode (auto-kill existing sessions)"
+    echo "  --help, -h   Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0           Interactive setup"
+    echo "  $0 --yes     Fast setup, no prompts"
+    exit 0
+elif [[ "$1" == "--yes" || "$1" == "-y" ]]; then
+    AUTO_YES=true
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,6 +32,9 @@ NC='\033[0m' # No Color
 echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║       🚀 AI Team Quick Start 🚀        ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
+if [ "$AUTO_YES" = true ]; then
+    echo -e "${GREEN}🤖 Non-interactive mode: --yes flag detected${NC}"
+fi
 echo ""
 
 # Function to check if a command exists
@@ -228,8 +250,14 @@ if tmux has-session -t ai-team 2>/dev/null; then
     echo -e "    1. Attach to existing:  ${GREEN}tmux attach -t ai-team${NC}"
     echo -e "    2. Kill and recreate:   ${YELLOW}tmux kill-session -t ai-team${NC}"
     echo ""
-    read -p "  Would you like to kill the existing session and create a new one? (y/N): " -n 1 -r
-    echo ""
+    
+    if [ "$AUTO_YES" = true ]; then
+        echo -e "  ${YELLOW}Auto-kill mode enabled, killing existing session...${NC}"
+        REPLY="y"
+    else
+        read -p "  Would you like to kill the existing session and create a new one? (y/N): " -n 1 -r
+        echo ""
+    fi
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}Killing existing session...${NC}"

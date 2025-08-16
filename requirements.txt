@@ -1,0 +1,19 @@
+# Core dependencies for Tmux Orchestrator
+# Production dependencies only - dev tools in requirements-dev.txt
+
+# No external dependencies required for core functionality
+# This project uses only Python standard library for maximum compatibility
+
+# Optional dependencies for enhanced features:
+# psutil>=5.9.0  # For process monitoring (install separately if needed)
+
+# Note: The following are available but not required:
+# - tmux (system dependency, not Python package)
+# - claude CLI (separate installation)
+# - git (system dependency)
+
+# If you need specific versions for your environment, uncomment and modify:
+# psutil==5.9.0
+
+# Development and quality tools should be installed separately:
+# pip install -r requirements-dev.txt

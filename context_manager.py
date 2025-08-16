@@ -270,26 +270,23 @@ class ContextRetentionManager:
     
     def _reinstall_communication_tools(self):
         """Reinstall missing communication tools"""
-        script = """#!/bin/bash
-        # Reinstall communication tools
-        INSTALL_DIR="$HOME/.local/bin"
-        mkdir -p "$INSTALL_DIR"
-        
-        # Create send-claude-message.sh if missing
-        if ! command -v send-claude-message.sh &> /dev/null; then
-            cat > "$INSTALL_DIR/send-claude-message.sh" << 'EOF'
-#!/bin/bash
+        # Secure tool reinstallation without shell=True
+        try:
+            install_dir = Path.home() / ".local" / "bin"
+            install_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Create send-claude-message.sh if missing
+            tool_path = install_dir / "send-claude-message.sh"
+            if not tool_path.exists():
+                script_content = """#!/bin/bash
 PANE_TARGET="$1"
 MESSAGE="$2"
 tmux send-keys -t "$PANE_TARGET" "$MESSAGE" C-m
-EOF
-            chmod +x "$INSTALL_DIR/send-claude-message.sh"
-        fi
-        """
-        
-        try:
-            import subprocess
-            subprocess.run(script, shell=True, check=True)
+"""
+                with open(tool_path, 'w') as f:
+                    f.write(script_content)
+                tool_path.chmod(0o755)
+                
             logger.info("Communication tools reinstalled")
         except Exception as e:
             logger.error(f"Failed to reinstall tools: {e}")

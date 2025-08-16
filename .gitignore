@@ -87,3 +87,18 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# Context and backup systems (generated)
+.context/
+config_backups/
+quality_reports/
+
+# Large assets
+Examples/
+assets/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg

@@ -31,16 +31,18 @@ class AgentProfile:
     window_name: str
 
 class AITeamOrchestrator:
-    def __init__(self):
+    def __init__(self, non_interactive=False):
         self.tmux = TmuxOrchestrator()
         self.session_name = "ai-team"
         self.agents: List[AgentProfile] = []
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.working_dir = os.getcwd()  # Capture the directory where user invoked the command
         self.context_manager = UnifiedContextManager(install_dir=Path(self.script_dir))
+        self.non_interactive = non_interactive
         logger.info("AITeamOrchestrator initialized", extra={
             'script_dir': self.script_dir,
-            'working_dir': self.working_dir
+            'working_dir': self.working_dir,
+            'non_interactive': non_interactive
         })
         
     def create_agent_profiles(self) -> List[AgentProfile]:
@@ -298,13 +300,13 @@ WORKING CONTEXT:
             for agent in self.agents:
                 pane_target = agent_panes.get(agent.name)
                 if not pane_target:
-                    print(f"✗ Could not find pane for {agent.name}")
+                    logger.error(f"Could not find pane for {agent.name}")
                     continue
                 
                 # Validate pane target before sending commands
                 valid, error = SecurityValidator.validate_pane_target(pane_target)
                 if not valid:
-                    print(f"✗ Invalid pane target {pane_target}: {error}")
+                    logger.error(f"Invalid pane target {pane_target}: {error}")
                     continue
                 
                 # Start Claude in the pane with --dangerously-skip-permissions
@@ -316,18 +318,19 @@ WORKING CONTEXT:
                 log_subprocess_call(logger, cmd, result)
                 
                 logger.info(f"Started Claude for {agent.name} in pane {pane_target}")
-                print(f"✓ Started Claude for {agent.name} in pane {pane_target}")
+                logger.info(f"Started Claude for {agent.name} in pane {pane_target}")
                 
-                # Wait a bit for Claude to start
-                logger.debug(f"Waiting 3 seconds for Claude to start in {pane_target}")
-                time.sleep(3)
+                # Wait for Claude to start (reduced delay in non-interactive mode)
+                delay = 1 if self.non_interactive else 3
+                logger.debug(f"Waiting {delay} seconds for Claude to start in {pane_target}")
+                time.sleep(delay)
             
             return True
             
         except subprocess.CalledProcessError as e:
             log_subprocess_call(logger, cmd if 'cmd' in locals() else [], error=e)
             logger.error(f"Failed to start Claude agents: {e}")
-            print(f"✗ Error starting Claude agents: {e}")
+            logger.error(f"Error starting Claude agents: {e}")
             return False
     
     def brief_agents(self) -> bool:
@@ -342,7 +345,7 @@ WORKING CONTEXT:
                 if send_script_path:
                     send_script = send_script_path
                 else:
-                    print("✗ send-claude-message.sh not found in script directory or PATH")
+                    logger.error("send-claude-message.sh not found in script directory or PATH")
                     return False
             
             # Pane mapping: 0.0 = Orchestrator, 0.1 = Alex, 0.2 = Morgan, 0.3 = Sam
@@ -355,13 +358,13 @@ WORKING CONTEXT:
             for agent in self.agents:
                 pane_target = agent_panes.get(agent.name)
                 if not pane_target:
-                    print(f"✗ Could not find pane for {agent.name}")
+                    logger.error(f"Could not find pane for {agent.name}")
                     continue
                 
                 # Validate pane target and sanitize briefing
                 valid, error = SecurityValidator.validate_pane_target(pane_target)
                 if not valid:
-                    print(f"✗ Invalid pane target {pane_target}: {error}")
+                    logger.error(f"Invalid pane target {pane_target}: {error}")
                     continue
                 
                 # Enhance briefing with embedded context and ensure workspace
@@ -380,15 +383,17 @@ WORKING CONTEXT:
                 log_subprocess_call(logger, cmd[:2] + ["<briefing_text>"], result)  # Don't log full briefing
                 
                 logger.info(f"Briefed {agent.name} in pane {pane_target}")
-                print(f"✓ Briefed {agent.name} in pane {pane_target}")
-                time.sleep(2)
+                logger.info(f"Briefed {agent.name} in pane {pane_target}")
+                # Reduced delay in non-interactive mode
+                delay = 0.5 if self.non_interactive else 2
+                time.sleep(delay)
             
             return True
             
         except subprocess.CalledProcessError as e:
             log_subprocess_call(logger, cmd[:2] + ["<briefing_text>"] if 'cmd' in locals() else [], error=e)
             logger.error(f"Failed to brief agents: {e}")
-            print(f"✗ Error briefing agents: {e}")
+            logger.error(f"Error briefing agents: {e}")
             return False
     
     def setup_orchestrator(self) -> bool:
@@ -403,7 +408,7 @@ WORKING CONTEXT:
                 if send_script_path:
                     send_script = send_script_path
                 else:
-                    print("✗ send-claude-message.sh not found in script directory or PATH")
+                    logger.error("send-claude-message.sh not found in script directory or PATH")
                     return False
             
             orchestrator_briefing = f"""You are the Orchestrator for a team of three AI software engineers:
@@ -470,14 +475,16 @@ Start by introducing yourself to all three agents and asking them to introduce t
                 "claude --dangerously-skip-permissions", "Enter"
             ], check=True)
             
-            print("✓ Started Claude in orchestrator pane")
-            time.sleep(5)
+            logger.info("Started Claude in orchestrator pane")
+            # Reduced delay in non-interactive mode
+            delay = 2 if self.non_interactive else 5
+            time.sleep(delay)
             
             # Validate target and send briefing to orchestrator
             orchestrator_target = f"{self.session_name}:0.0"
             valid, error = SecurityValidator.validate_pane_target(orchestrator_target)
             if not valid:
-                print(f"✗ Invalid orchestrator target: {error}")
+                logger.error(f"Invalid orchestrator target: {error}")
                 return False
             
             # Enhance orchestrator briefing with context and create workspace
@@ -495,11 +502,11 @@ Start by introducing yourself to all three agents and asking them to introduce t
                 send_script, orchestrator_target, sanitized_briefing
             ], check=True)
             
-            print("✓ Briefed orchestrator")
+            logger.info("Briefed orchestrator")
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"✗ Error setting up orchestrator: {e}")
+            logger.error(f"Error setting up orchestrator: {e}")
             return False
     
     def display_team_info(self):
@@ -598,6 +605,7 @@ def main():
 Examples:
   python3 create_ai_team.py                    # Create default team
   python3 create_ai_team.py --session my-team  # Create with custom session name
+  python3 create_ai_team.py --yes              # Non-interactive mode (fast)
   
 This creates:
 - 1 Orchestrator (coordinates and mediates)
@@ -620,16 +628,23 @@ This creates:
         help="Enable verbose output"
     )
     
+    parser.add_argument(
+        "--yes", "-y",
+        action="store_true",
+        help="Non-interactive mode: skip prompts and use defaults"
+    )
+    
     args = parser.parse_args()
     
     # Validate session name from args
     valid, error = SecurityValidator.validate_session_name(args.session)
     if not valid:
-        print(f"❌ Invalid session name: {error}")
+        logger.error(f"Invalid session name: {error}")
+        print(f"❌ Invalid session name: {error}")  # User-facing error
         sys.exit(1)
     
     # Create the team
-    orchestrator = AITeamOrchestrator()
+    orchestrator = AITeamOrchestrator(non_interactive=args.yes)
     orchestrator.session_name = args.session
     
     try:
@@ -639,7 +654,8 @@ This creates:
             print(f"💡 Run: tmux attach -t {args.session}")
             sys.exit(0)
         else:
-            print("\n❌ Failed to create AI team")
+            logger.error("Failed to create AI team")
+            print("\n❌ Failed to create AI team")  # User-facing error
             sys.exit(1)
             
     except KeyboardInterrupt:
@@ -648,7 +664,8 @@ This creates:
         sys.exit(1)
     except Exception as e:
         logger.exception(f"Unexpected error during AI team creation: {e}")
-        print(f"\n❌ Unexpected error: {e}")
+        logger.error(f"Unexpected error: {e}")
+        print(f"\n❌ Unexpected error: {e}")  # User-facing error
         sys.exit(1)
 
 if __name__ == "__main__":
