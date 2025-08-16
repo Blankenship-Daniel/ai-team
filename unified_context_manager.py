@@ -235,7 +235,7 @@ If you lose context, create the tools using the scripts provided above."""
     
     def _copy_tools(self, tools_dir: Path) -> bool:
         """Copy essential tools to workspace"""
-        tools_to_copy = ['send-claude-message.sh', 'schedule_with_note.sh']
+        tools_to_copy = ['send-claude-message.sh', 'schedule_with_note.sh', 'context-status.sh']
         docs_to_copy = ['ORCHESTRATOR_GUIDE.md']
         all_copied = True
         

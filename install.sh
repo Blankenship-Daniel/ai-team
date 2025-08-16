@@ -125,6 +125,11 @@ cp "$SOURCE_DIR/ORCHESTRATOR_GUIDE.md" "$INSTALL_DIR/"
 chmod 644 "$INSTALL_DIR/ORCHESTRATOR_GUIDE.md"
 echo -e "${GREEN}✓ Copied ORCHESTRATOR_GUIDE.md${NC}"
 
+# Copy the context helper
+cp "$SOURCE_DIR/context-status.sh" "$INSTALL_DIR/"
+chmod +x "$INSTALL_DIR/context-status.sh"
+echo -e "${GREEN}✓ Copied context-status.sh${NC}"
+
 # Copy the wrapper script
 cp "$SOURCE_DIR/ai-team" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/ai-team"
@@ -152,6 +157,7 @@ echo "  • unified_context_manager.py (agent context)"
 echo "  • send-claude-message.sh (messaging utility)"
 echo "  • schedule_with_note.sh (scheduling utility)"
 echo "  • ORCHESTRATOR_GUIDE.md (tmux communication guide)"
+echo "  • context-status.sh (quick context restoration)"
 echo "  • ai-team (command wrapper)"
 echo ""
 echo "Usage:"
