@@ -195,8 +195,8 @@ WORKING CONTEXT:
             logger.debug(f"Session '{session_name}' exists")
             return True
         except subprocess.CalledProcessError as e:
-            log_subprocess_call(logger, cmd, error=e)
-            logger.debug(f"Session '{session_name}' does not exist")
+            # This is expected behavior when session doesn't exist - log as debug, not error
+            logger.debug(f"Session '{session_name}' does not exist (tmux has-session returned {e.returncode})")
             return False
     
     def create_tmux_session(self) -> bool:

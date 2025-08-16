@@ -79,6 +79,18 @@ if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
     fi
 fi
 
+# Verify all required files exist before installation
+echo -e "${BLUE}🔍 Verifying required files...${NC}"
+REQUIRED_FILES=("create_ai_team.py" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "send-claude-message.sh" "schedule_with_note.sh" "ai-team")
+
+for file in "${REQUIRED_FILES[@]}"; do
+    if [ ! -f "$SOURCE_DIR/$file" ]; then
+        echo -e "${RED}❌ Error: Required file '$file' not found in $SOURCE_DIR${NC}"
+        exit 1
+    fi
+done
+echo -e "${GREEN}✓ All required files found${NC}"
+
 # Copy the main script and dependencies
 echo -e "${BLUE}📦 Installing AI Team CLI...${NC}"
 
@@ -86,13 +98,27 @@ echo -e "${BLUE}📦 Installing AI Team CLI...${NC}"
 cp "$SOURCE_DIR/create_ai_team.py" "$INSTALL_DIR/"
 echo -e "${GREEN}✓ Copied create_ai_team.py${NC}"
 
-# Copy dependencies
+# Copy Python dependencies
 cp "$SOURCE_DIR/tmux_utils.py" "$INSTALL_DIR/"
 echo -e "${GREEN}✓ Copied tmux_utils.py${NC}"
 
+cp "$SOURCE_DIR/security_validator.py" "$INSTALL_DIR/"
+echo -e "${GREEN}✓ Copied security_validator.py${NC}"
+
+cp "$SOURCE_DIR/logging_config.py" "$INSTALL_DIR/"
+echo -e "${GREEN}✓ Copied logging_config.py${NC}"
+
+cp "$SOURCE_DIR/unified_context_manager.py" "$INSTALL_DIR/"
+echo -e "${GREEN}✓ Copied unified_context_manager.py${NC}"
+
+# Copy shell script utilities
 cp "$SOURCE_DIR/send-claude-message.sh" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/send-claude-message.sh"
 echo -e "${GREEN}✓ Copied send-claude-message.sh${NC}"
+
+cp "$SOURCE_DIR/schedule_with_note.sh" "$INSTALL_DIR/"
+chmod +x "$INSTALL_DIR/schedule_with_note.sh"
+echo -e "${GREEN}✓ Copied schedule_with_note.sh${NC}"
 
 # Copy the wrapper script
 cp "$SOURCE_DIR/ai-team" "$INSTALL_DIR/"
@@ -112,14 +138,23 @@ echo ""
 echo "================================================"
 echo -e "${GREEN}🎉 AI Team CLI installed successfully!${NC}"
 echo ""
+echo "Files installed:"
+echo "  • create_ai_team.py (main script)"
+echo "  • tmux_utils.py (tmux management)"
+echo "  • security_validator.py (input validation)"
+echo "  • logging_config.py (logging setup)"
+echo "  • unified_context_manager.py (agent context)"
+echo "  • send-claude-message.sh (messaging utility)"
+echo "  • schedule_with_note.sh (scheduling utility)"
+echo "  • ai-team (command wrapper)"
+echo ""
 echo "Usage:"
 echo -e "  ${BLUE}ai-team${NC}                    # Create default team"
 echo -e "  ${BLUE}ai-team -s my-team${NC}         # Create with custom name"
 echo -e "  ${BLUE}ai-team --help${NC}             # Show help"
 echo ""
-echo "What's installed:"
-echo "  • Command: ai-team (in $INSTALL_DIR)"
-echo "  • Creates: Orchestrator + 3 opinionated AI engineers"
+echo "What's created:"
+echo "  • Orchestrator: Coordinates and mediates"
 echo "  • Alex: Perfectionist architect (quality-focused)"
 echo "  • Morgan: Pragmatic shipper (speed-focused)"
 echo "  • Sam: Code janitor (cleanup-focused)"
