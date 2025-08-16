@@ -1,0 +1,68 @@
+# Pre-commit hooks for Tmux Orchestrator
+# Run: pip install pre-commit && pre-commit install
+
+repos:
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  # Code quality
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --extend-ignore=E203,W503]
+
+  # Security scanning
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+
+  # Remove trailing whitespace
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+
+  # Custom hooks
+  - repo: local
+    hooks:
+      - id: no-print-statements
+        name: Check for print statements
+        entry: bash -c 'if grep -r "print(" --include="*.py" .; then echo "Found print() statements - use logging instead"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        
+      - id: quality-check
+        name: Run quality automation
+        entry: python3 quality_automation.py
+        language: system
+        pass_filenames: false
+        stages: [manual]
+        
+      - id: context-health-check
+        name: Check context system health
+        entry: bash -c 'python3 -c "from context_manager import get_context_manager; import json; health = get_context_manager().check_health(); print(json.dumps(health, indent=2)); exit(0 if health[\"healthy\"] else 1)"'
+        language: system
+        pass_filenames: false
+        stages: [manual]

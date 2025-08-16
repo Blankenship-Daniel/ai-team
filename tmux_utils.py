@@ -7,8 +7,10 @@ import shlex
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from security_validator import SecurityValidator
 from logging_config import setup_logging, log_subprocess_call
+from context_registry import ContextRegistry
 
 # Set up logging for this module
 logger = setup_logging(__name__)
@@ -27,9 +29,14 @@ class TmuxSession:
     attached: bool
 
 class TmuxOrchestrator:
-    def __init__(self):
+    def __init__(self, enable_context_registry: bool = True):
         self.safety_mode = True
         self.max_lines_capture = 1000
+        
+        # Initialize context registry for bulletproof context persistence
+        self.context_registry = ContextRegistry() if enable_context_registry else None
+        if self.context_registry:
+            logger.info("TmuxOrchestrator initialized with context registry")
         
     def get_tmux_sessions(self) -> List[TmuxSession]:
         """Get all tmux sessions and their windows"""
@@ -261,6 +268,179 @@ class TmuxOrchestrator:
                 snapshot += "\n"
         
         return snapshot
+    
+    def send_command_with_context(self, session_name: str, window_index: int, 
+                                 command: str, context_data: Dict = None, 
+                                 auto_checkpoint: bool = True) -> bool:
+        """
+        Send command with automatic context management.
+        
+        Args:
+            session_name: Tmux session name
+            window_index: Window index
+            command: Command to send
+            context_data: Additional context to include in checkpoint
+            auto_checkpoint: Whether to create checkpoint automatically
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.context_registry:
+            logger.warning("Context registry not available, falling back to basic send")
+            return self.send_command_to_window(session_name, window_index, command)
+        
+        try:
+            # Get current working directory and other context
+            current_context = {
+                'command_sent': command,
+                'timestamp': datetime.now().isoformat(),
+                'working_directory': str(Path.cwd()),
+                'session_info': {
+                    'session': session_name,
+                    'window': window_index
+                }
+            }
+            
+            # Merge additional context
+            if context_data:
+                current_context.update(context_data)
+            
+            # Update state
+            self.context_registry.update_state(
+                session_name, window_index,
+                working_directory=str(Path.cwd()),
+                last_command=command
+            )
+            
+            # Create checkpoint if threshold reached or explicitly requested
+            if auto_checkpoint and self.context_registry.should_create_checkpoint(session_name, window_index):
+                checkpoint_id = self.context_registry.create_checkpoint(
+                    session_name, window_index, current_context
+                )
+                logger.info(f"Created context checkpoint {checkpoint_id[:8]} for {session_name}:{window_index}")
+                
+                # Add context header to command
+                context_header = f"[CTX:{checkpoint_id[:8]}] "
+                enhanced_command = context_header + command
+            else:
+                enhanced_command = command
+            
+            # Send the command
+            success = self.send_command_to_window(session_name, window_index, enhanced_command)
+            
+            if success:
+                # Update message count
+                state = self.context_registry.get_state(session_name, window_index)
+                state.message_count += 1
+                logger.debug(f"Command sent with context to {session_name}:{window_index}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error sending command with context: {e}")
+            # Fallback to basic send
+            return self.send_command_to_window(session_name, window_index, command)
+    
+    def restore_agent_context(self, session_name: str, window_index: int, 
+                             checkpoint_id: str = None) -> bool:
+        """
+        Restore agent context from checkpoint.
+        
+        Args:
+            session_name: Tmux session name
+            window_index: Window index
+            checkpoint_id: Specific checkpoint ID, or None for latest
+            
+        Returns:
+            True if context restored successfully
+        """
+        if not self.context_registry:
+            logger.error("Context registry not available")
+            return False
+        
+        try:
+            if checkpoint_id:
+                checkpoint = self.context_registry.restore_checkpoint(checkpoint_id)
+            else:
+                checkpoint = self.context_registry.get_latest_checkpoint(session_name, window_index)
+            
+            if not checkpoint:
+                logger.warning(f"No checkpoint found for {session_name}:{window_index}")
+                return False
+            
+            # Send context restoration message
+            context_message = f"""
+[CONTEXT RESTORATION]
+Checkpoint: {checkpoint.id[:8]}
+Timestamp: {checkpoint.timestamp}
+Context Hash: {checkpoint.context_hash[:16]}
+
+Previous context restored. Continue with your tasks.
+Verification: CTX:{checkpoint.id[:8]}
+"""
+            
+            return self.send_keys_to_window(session_name, window_index, context_message, confirm=False)
+            
+        except Exception as e:
+            logger.error(f"Error restoring context: {e}")
+            return False
+    
+    def get_context_status(self, session_name: str, window_index: int) -> Dict:
+        """Get context status for an agent"""
+        if not self.context_registry:
+            return {'error': 'Context registry not available'}
+        
+        try:
+            summary = self.context_registry.get_checkpoint_summary(session_name, window_index)
+            state = self.context_registry.get_state(session_name, window_index)
+            
+            return {
+                'agent_id': f"{session_name}:{window_index}",
+                'checkpoints': summary,
+                'current_state': state.to_dict(),
+                'needs_checkpoint': self.context_registry.should_create_checkpoint(session_name, window_index)
+            }
+        except Exception as e:
+            logger.error(f"Error getting context status: {e}")
+            return {'error': str(e)}
+    
+    def create_manual_checkpoint(self, session_name: str, window_index: int, 
+                                context_data: Dict, description: str = None) -> Optional[str]:
+        """
+        Manually create a context checkpoint.
+        
+        Args:
+            session_name: Tmux session name
+            window_index: Window index
+            context_data: Context data to checkpoint
+            description: Optional description of the checkpoint
+            
+        Returns:
+            Checkpoint ID if successful, None otherwise
+        """
+        if not self.context_registry:
+            logger.error("Context registry not available")
+            return None
+        
+        try:
+            # Add metadata
+            enhanced_context = {
+                **context_data,
+                'checkpoint_type': 'manual',
+                'description': description or 'Manual checkpoint',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            checkpoint_id = self.context_registry.create_checkpoint(
+                session_name, window_index, enhanced_context
+            )
+            
+            logger.info(f"Manual checkpoint {checkpoint_id[:8]} created for {session_name}:{window_index}")
+            return checkpoint_id
+            
+        except Exception as e:
+            logger.error(f"Error creating manual checkpoint: {e}")
+            return None
 
 if __name__ == "__main__":
     orchestrator = TmuxOrchestrator()

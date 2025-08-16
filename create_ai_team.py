@@ -205,7 +205,7 @@ WORKING CONTEXT:
             # Validate session name
             valid, error = SecurityValidator.validate_session_name(self.session_name)
             if not valid:
-                print(f"✗ Invalid session name: {error}")
+                logger.error(f"Invalid session name: {error}")
                 return False
             
             if self.session_exists(self.session_name):
@@ -223,13 +223,13 @@ WORKING CONTEXT:
             log_subprocess_call(logger, cmd, result)
             
             logger.info(f"Created session '{self.session_name}' with orchestrator window")
-            print(f"✓ Created session '{self.session_name}' with orchestrator window")
+            logger.info(f"Created session '{self.session_name}' with orchestrator window")
             return True
             
         except subprocess.CalledProcessError as e:
             log_subprocess_call(logger, cmd if 'cmd' in locals() else [], error=e)
             logger.error(f"Failed to create tmux session: {e}")
-            print(f"✗ Error creating tmux session: {e}")
+            logger.error(f"Error creating tmux session: {e}")
             return False
     
     def create_agent_panes(self) -> bool:
@@ -241,21 +241,21 @@ WORKING CONTEXT:
                 "tmux", "split-window", "-t", f"{self.session_name}:0",
                 "-v", "-p", "60", "-c", self.working_dir
             ], check=True)
-            print("✓ Created horizontal split (Orchestrator top, agents bottom)")
+            logger.info("Created horizontal split (Orchestrator top, agents bottom)")
             
             # Split the bottom pane vertically to create first two agent panes
             subprocess.run([
                 "tmux", "split-window", "-t", f"{self.session_name}:0.1",
                 "-h", "-p", "66", "-c", self.working_dir
             ], check=True)
-            print("✓ Created first vertical split for agent panes")
+            logger.info("Created first vertical split for agent panes")
             
             # Split again to create third agent pane
             subprocess.run([
                 "tmux", "split-window", "-t", f"{self.session_name}:0.2",
                 "-h", "-p", "50", "-c", self.working_dir
             ], check=True)
-            print("✓ Created second vertical split for third agent pane")
+            logger.info("Created second vertical split for third agent pane")
             
             # Set pane titles
             subprocess.run([
@@ -278,11 +278,11 @@ WORKING CONTEXT:
                 "-T", "Sam-Janitor"
             ], check=True)
             
-            print("✓ Set pane titles")
+            logger.info("Set pane titles")
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"✗ Error creating agent panes: {e}")
+            logger.error(f"Error creating agent panes: {e}")
             return False
     
     def start_claude_agents(self) -> bool:
