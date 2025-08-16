@@ -202,6 +202,17 @@ def security_test_cases() -> Dict[str, Any]:
 
 
 @pytest.fixture(autouse=True)
+def mock_working_directory():
+    """Mock os.getcwd() and Path.cwd() to prevent FileNotFoundError in tests."""
+    test_dir = "/tmp/tmux-orchestrator-test"
+    os.makedirs(test_dir, exist_ok=True)
+    
+    with patch('os.getcwd', return_value=test_dir), \
+         patch('pathlib.Path.cwd', return_value=Path(test_dir)):
+        yield test_dir
+
+
+@pytest.fixture(autouse=True)
 def setup_logging():
     """Set up logging for tests"""
     import logging

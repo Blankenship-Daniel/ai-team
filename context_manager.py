@@ -281,7 +281,8 @@ class ContextRetentionManager:
                 script_content = """#!/bin/bash
 PANE_TARGET="$1"
 MESSAGE="$2"
-tmux send-keys -t "$PANE_TARGET" "$MESSAGE" C-m
+tmux send-keys -t "$PANE_TARGET" -l "$MESSAGE"
+tmux send-keys -t "$PANE_TARGET" C-m
 """
                 with open(tool_path, 'w') as f:
                     f.write(script_content)
