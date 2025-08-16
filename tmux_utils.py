@@ -68,7 +68,7 @@ class TmuxOrchestrator:
             
             return sessions
         except subprocess.CalledProcessError as e:
-            print(f"Error getting tmux sessions: {e}")
+            logger.error(f"Error getting tmux sessions: {e}")
             return []
     
     def capture_window_content(self, session_name: str, window_index: int, num_lines: int = 50) -> str:

@@ -236,8 +236,10 @@ If you lose context, create the tools using the scripts provided above."""
     def _copy_tools(self, tools_dir: Path) -> bool:
         """Copy essential tools to workspace"""
         tools_to_copy = ['send-claude-message.sh', 'schedule_with_note.sh']
+        docs_to_copy = ['ORCHESTRATOR_GUIDE.md']
         all_copied = True
         
+        # Copy executable tools
         for tool in tools_to_copy:
             source = self.install_dir / tool
             if source.exists():
@@ -252,6 +254,23 @@ If you lose context, create the tools using the scripts provided above."""
             else:
                 logger.warning(f"Tool not found: {tool}")
                 all_copied = False
+        
+        # Copy documentation files
+        for doc in docs_to_copy:
+            source = self.install_dir / doc
+            if source.exists():
+                dest = tools_dir / doc
+                try:
+                    shutil.copy2(source, dest)
+                    os.chmod(dest, 0o644)
+                    logger.debug(f"Copied {doc} to workspace")
+                except Exception as e:
+                    logger.error(f"Failed to copy {doc}: {e}")
+                    all_copied = False
+            else:
+                logger.warning(f"Documentation not found: {doc}")
+                # Not critical if docs are missing
+                pass
         
         return all_copied
     
