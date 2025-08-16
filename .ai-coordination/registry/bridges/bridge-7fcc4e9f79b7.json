@@ -1,0 +1,9 @@
+{
+  "bridge_id": "bridge-7fcc4e9f79b7",
+  "session1": "dev-team",
+  "session2": "qa-team",
+  "coordination_context": "Testing collaboration workflow",
+  "created_at": "2025-08-16T18:27:38.388822",
+  "status": "active",
+  "last_activity": "2025-08-16T18:27:38.388829"
+}

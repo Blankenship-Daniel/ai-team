@@ -1,8 +1,9 @@
 {
+  "bridge_id": "bridge-a07663b020af",
   "session1": "Tmux-Orchestrator",
   "session2": "test-alex",
   "coordination_context": "Orchestrator team coordination",
   "created_at": "2025-08-16T18:29:59.022185",
-  "bridge_id": "bridge-a07663b020af",
-  "_note": "Legacy compatibility - use bridge registry for multi-bridge support"
+  "status": "active",
+  "last_activity": "2025-08-16T18:29:59.022193"
 }

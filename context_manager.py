@@ -129,7 +129,8 @@ class ContextRetentionManager:
 
             # Return most recent
             candidates.sort(key=lambda x: x[0], reverse=True)
-            return candidates[0][1]["content"]
+            content: str = candidates[0][1]["content"]
+            return content
 
         except Exception as e:
             logger.error(f"Failed to restore context: {e}")
@@ -229,7 +230,7 @@ class ContextRetentionManager:
             stat = os.statvfs(self.base_dir)
             free_mb = (stat.f_frsize * stat.f_bavail) / (1024 * 1024)
             return free_mb > 100  # Need at least 100MB free
-        except:
+        except Exception:
             return False
 
     def _check_communication_tools(self) -> bool:
@@ -253,7 +254,7 @@ class ContextRetentionManager:
                 with open(file) as f:
                     json.load(f)
             return True
-        except:
+        except Exception:
             return False
 
     def _attempt_auto_repair(self, issues: List[str]):
@@ -300,7 +301,7 @@ tmux send-keys -t "$PANE_TARGET" C-m
             try:
                 with open(file) as f:
                     json.load(f)
-            except:
+            except Exception:
                 target = quarantine / file.name
                 file.rename(target)
                 logger.warning(f"Quarantined corrupted file: {file.name}")
@@ -317,7 +318,7 @@ tmux send-keys -t "$PANE_TARGET" C-m
                         # Update timestamp to prevent cleanup
                         file.touch()
                         return str(file)
-            except:
+            except Exception:
                 continue
         return None
 

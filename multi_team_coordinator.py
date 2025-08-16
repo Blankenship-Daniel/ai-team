@@ -109,7 +109,7 @@ class MultiTeamCoordinator:
         # Background services
         self._running = False
         self._lock = threading.RLock()
-        self._threads = []
+        self._threads: List[Any] = []
         
         self._load_state()
         logger.info("MultiTeamCoordinator initialized")
