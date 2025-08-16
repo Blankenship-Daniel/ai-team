@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "session": "ai-team",
+  "agent": "Sam-Janitor",
+  "install_dir": "/Users/ship/.local/bin",
+  "working_dir": "/Users/ship/Documents/code/Tmux-Orchestrator",
+  "core_context": "\n## CRITICAL AGENT KNOWLEDGE\n\n### Communication Protocol\n- Use `tmux send-keys -t session:window \"message\"` to communicate\n- Check other agents: `tmux capture-pane -t session:window -p | tail -20`\n- Your session/window: Use `tmux display-message -p \"#{session_name}:#{window_index}\"`\n\n### Tool Creation (If Not Available)\nIf send-claude-message.sh is not available, create it:\n```bash\ncat > send-claude-message.sh << 'EOF'\n#!/bin/bash\nWINDOW=\"$1\"\nshift\nMESSAGE=\"$*\"\ntmux send-keys -t \"$WINDOW\" \"$MESSAGE\"\nsleep 1\ntmux send-keys -t \"$WINDOW\" Enter\necho \"Message sent to $WINDOW: $MESSAGE\"\nEOF\nchmod +x send-claude-message.sh\n```\n\n### Git Discipline (MANDATORY)\n1. **Commit every 30 minutes**: `git add -A && git commit -m \"Progress: [what you did]\"`\n2. **Before task switches**: ALWAYS commit\n3. **Tag stable versions**: `git tag stable-[feature]-$(date +%Y%m%d)`\n\n### Error Recovery\n- If tmux fails: Log error to ERROR.log\n- If git conflicts: Create CONFLICT.md with details\n- If blocked: Message orchestrator immediately\n",
+  "timestamp": "/Users/ship/Documents/code/Tmux-Orchestrator",
+  "note": "Workspace context for agent operation"
+}

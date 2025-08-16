@@ -19,8 +19,14 @@ from unified_context_manager import UnifiedContextManager
 
 def run_command(cmd):
     """Run a shell command and return output"""
+    import shlex
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+        # SECURITY: Never use shell=True - split command properly
+        if isinstance(cmd, str):
+            cmd_list = shlex.split(cmd)
+        else:
+            cmd_list = cmd
+        result = subprocess.run(cmd_list, capture_output=True, text=True, check=True)
         return result.stdout, result.stderr, True
     except subprocess.CalledProcessError as e:
         return e.stdout, e.stderr, False
@@ -164,7 +170,10 @@ def test_quickstart_integration():
             return False
         
         # Check what quickstart creates with timeout
-        stdout, stderr, success = run_command(f"cd {tmpdir} && timeout 10 {quickstart} --test 2>&1 | head -50")
+        # SECURITY: Use proper command construction, not shell concatenation
+        import shlex
+        cmd = ["timeout", "10", str(quickstart), "--test"]
+        stdout, stderr, success = run_command(cmd)
         
         # Check for expected directories
         ai_team_dir = Path(tmpdir) / ".ai-team"

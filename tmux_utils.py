@@ -176,8 +176,8 @@ class TmuxOrchestrator:
             logger.error(f"Invalid command: {e}")
             return False
         
-        # First send the command text
-        if not self.send_keys_to_window(session_name, window_index, command, confirm):
+        # First send the command text - use sanitized version
+        if not self.send_keys_to_window(session_name, window_index, sanitized_command, confirm):
             return False
         
         # Then send the actual Enter key (C-m)
