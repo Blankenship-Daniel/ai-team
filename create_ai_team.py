@@ -22,6 +22,7 @@ from unified_context_manager import UnifiedContextManager
 # Set up logging for this module
 logger = setup_logging(__name__)
 
+
 @dataclass
 class AgentProfile:
     name: str
@@ -29,6 +30,7 @@ class AgentProfile:
     role: str
     briefing: str
     window_name: str
+
 
 class AITeamOrchestrator:
     def __init__(self, non_interactive=False):
@@ -39,18 +41,17 @@ class AITeamOrchestrator:
         self.working_dir = os.getcwd()  # Capture the directory where user invoked the command
         self.context_manager = UnifiedContextManager(install_dir=Path(self.script_dir))
         self.non_interactive = non_interactive
-        logger.info("AITeamOrchestrator initialized", extra={
-            'script_dir': self.script_dir,
-            'working_dir': self.working_dir,
-            'non_interactive': non_interactive
-        })
-        
+        logger.info(
+            "AITeamOrchestrator initialized",
+            extra={"script_dir": self.script_dir, "working_dir": self.working_dir, "non_interactive": non_interactive},
+        )
+
     def create_agent_profiles(self) -> List[AgentProfile]:
         """Create three strongly opinionated AI agent profiles"""
-        
+
         agent1 = AgentProfile(
             name="Alex-Purist",
-            personality="PERFECTIONIST_ARCHITECT", 
+            personality="PERFECTIONIST_ARCHITECT",
             role="Senior Software Engineer",
             window_name="Agent-Alex",
             briefing=f"""You are Alex, a senior software engineer with 15+ years of experience. You are:
@@ -85,13 +86,13 @@ WORKING CONTEXT:
 - The orchestrator is in pane 0.0
 - You are in pane 0.1
 - Morgan is in pane 0.2, Sam is in pane 0.3
-- Always use absolute paths when needed"""
+- Always use absolute paths when needed""",
         )
-        
+
         agent2 = AgentProfile(
             name="Morgan-Pragmatist",
             personality="SHIP_IT_ENGINEER",
-            role="Full-Stack Developer", 
+            role="Full-Stack Developer",
             window_name="Agent-Morgan",
             briefing=f"""You are Morgan, a full-stack developer focused on shipping products. You are:
 
@@ -125,9 +126,9 @@ WORKING CONTEXT:
 - The orchestrator is in pane 0.0
 - Alex is in pane 0.1
 - You are in pane 0.2, Sam is in pane 0.3
-- Always use absolute paths when needed"""
+- Always use absolute paths when needed""",
         )
-        
+
         agent3 = AgentProfile(
             name="Sam-Janitor",
             personality="CODE_CUSTODIAN",
@@ -176,11 +177,11 @@ WORKING CONTEXT:
 - The orchestrator is in pane 0.0
 - Alex is in pane 0.1, Morgan is in pane 0.2
 - You are in pane 0.3
-- Always use absolute paths when needed"""
+- Always use absolute paths when needed""",
         )
-        
+
         return [agent1, agent2, agent3]
-    
+
     def session_exists(self, session_name: str) -> bool:
         """Check if a tmux session already exists"""
         # Validate session name first
@@ -188,7 +189,7 @@ WORKING CONTEXT:
         if not valid:
             logger.error(f"Invalid session name: {error}")
             raise ValueError(f"Invalid session name: {error}")
-        
+
         logger.debug(f"Checking if session '{session_name}' exists")
         try:
             cmd = ["tmux", "has-session", "-t", session_name]
@@ -200,7 +201,7 @@ WORKING CONTEXT:
             # This is expected behavior when session doesn't exist - log as debug, not error
             logger.debug(f"Session '{session_name}' does not exist (tmux has-session returned {e.returncode})")
             return False
-    
+
     def create_tmux_session(self) -> bool:
         """Create the main tmux session for the AI team"""
         try:
@@ -209,84 +210,71 @@ WORKING CONTEXT:
             if not valid:
                 logger.error(f"Invalid session name: {error}")
                 return False
-            
+
             if self.session_exists(self.session_name):
                 logger.warning(f"Session '{self.session_name}' already exists. Killing it first...")
                 cmd = ["tmux", "kill-session", "-t", self.session_name]
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 log_subprocess_call(logger, cmd, result)
-            
+
             # Create new session with orchestrator
-            cmd = [
-                "tmux", "new-session", "-d", "-s", self.session_name, 
-                "-n", "Orchestrator", "-c", self.working_dir
-            ]
+            cmd = ["tmux", "new-session", "-d", "-s", self.session_name, "-n", "Orchestrator", "-c", self.working_dir]
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             log_subprocess_call(logger, cmd, result)
-            
+
             logger.info(f"Created session '{self.session_name}' with orchestrator window")
             logger.info(f"Created session '{self.session_name}' with orchestrator window")
             return True
-            
+
         except subprocess.CalledProcessError as e:
-            log_subprocess_call(logger, cmd if 'cmd' in locals() else [], error=e)
+            log_subprocess_call(logger, cmd if "cmd" in locals() else [], error=e)
             logger.error(f"Failed to create tmux session: {e}")
             logger.error(f"Error creating tmux session: {e}")
             return False
-    
+
     def create_agent_panes(self) -> bool:
         """Create panes for each AI agent in a split layout"""
         try:
             # Split the main window horizontally to create top and bottom sections
             # Top: Orchestrator, Bottom: Three agents side by side
-            subprocess.run([
-                "tmux", "split-window", "-t", f"{self.session_name}:0",
-                "-v", "-p", "60", "-c", self.working_dir
-            ], check=True)
+            subprocess.run(
+                ["tmux", "split-window", "-t", f"{self.session_name}:0", "-v", "-p", "60", "-c", self.working_dir],
+                check=True,
+            )
             logger.info("Created horizontal split (Orchestrator top, agents bottom)")
-            
+
             # Split the bottom pane vertically to create first two agent panes
-            subprocess.run([
-                "tmux", "split-window", "-t", f"{self.session_name}:0.1",
-                "-h", "-p", "66", "-c", self.working_dir
-            ], check=True)
+            subprocess.run(
+                ["tmux", "split-window", "-t", f"{self.session_name}:0.1", "-h", "-p", "66", "-c", self.working_dir],
+                check=True,
+            )
             logger.info("Created first vertical split for agent panes")
-            
+
             # Split again to create third agent pane
-            subprocess.run([
-                "tmux", "split-window", "-t", f"{self.session_name}:0.2",
-                "-h", "-p", "50", "-c", self.working_dir
-            ], check=True)
+            subprocess.run(
+                ["tmux", "split-window", "-t", f"{self.session_name}:0.2", "-h", "-p", "50", "-c", self.working_dir],
+                check=True,
+            )
             logger.info("Created second vertical split for third agent pane")
-            
+
             # Set pane titles
-            subprocess.run([
-                "tmux", "select-pane", "-t", f"{self.session_name}:0.0",
-                "-T", "Orchestrator"
-            ], check=True)
-            
-            subprocess.run([
-                "tmux", "select-pane", "-t", f"{self.session_name}:0.1",
-                "-T", "Alex-Purist"
-            ], check=True)
-            
-            subprocess.run([
-                "tmux", "select-pane", "-t", f"{self.session_name}:0.2",
-                "-T", "Morgan-Pragmatist"
-            ], check=True)
-            
-            subprocess.run([
-                "tmux", "select-pane", "-t", f"{self.session_name}:0.3",
-                "-T", "Sam-Janitor"
-            ], check=True)
-            
+            subprocess.run(["tmux", "select-pane", "-t", f"{self.session_name}:0.0", "-T", "Orchestrator"], check=True)
+
+            subprocess.run(["tmux", "select-pane", "-t", f"{self.session_name}:0.1", "-T", "Alex-Purist"], check=True)
+
+            subprocess.run(
+                ["tmux", "select-pane", "-t", f"{self.session_name}:0.2", "-T", "Morgan-Pragmatist"], check=True
+            )
+
+            subprocess.run(["tmux", "select-pane", "-t", f"{self.session_name}:0.3", "-T", "Sam-Janitor"], check=True)
+
             logger.info("Set pane titles")
             return True
-            
+
         except subprocess.CalledProcessError as e:
             logger.error(f"Error creating agent panes: {e}")
             return False
-    
+
     def start_claude_agents(self) -> bool:
         """Start Claude in each agent pane"""
         try:
@@ -294,45 +282,42 @@ WORKING CONTEXT:
             agent_panes = {
                 "Alex-Purist": f"{self.session_name}:0.1",
                 "Morgan-Pragmatist": f"{self.session_name}:0.2",
-                "Sam-Janitor": f"{self.session_name}:0.3"
+                "Sam-Janitor": f"{self.session_name}:0.3",
             }
-            
+
             for agent in self.agents:
                 pane_target = agent_panes.get(agent.name)
                 if not pane_target:
                     logger.error(f"Could not find pane for {agent.name}")
                     continue
-                
+
                 # Validate pane target before sending commands
                 valid, error = SecurityValidator.validate_pane_target(pane_target)
                 if not valid:
                     logger.error(f"Invalid pane target {pane_target}: {error}")
                     continue
-                
+
                 # Start Claude in the pane with --dangerously-skip-permissions
-                cmd = [
-                    "tmux", "send-keys", "-t", pane_target,
-                    "claude --dangerously-skip-permissions", "Enter"
-                ]
+                cmd = ["tmux", "send-keys", "-t", pane_target, "claude --dangerously-skip-permissions", "Enter"]
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 log_subprocess_call(logger, cmd, result)
-                
+
                 logger.info(f"Started Claude for {agent.name} in pane {pane_target}")
                 logger.info(f"Started Claude for {agent.name} in pane {pane_target}")
-                
+
                 # Wait for Claude to start (reduced delay in non-interactive mode)
                 delay = 1 if self.non_interactive else 3
                 logger.debug(f"Waiting {delay} seconds for Claude to start in {pane_target}")
                 time.sleep(delay)
-            
+
             return True
-            
+
         except subprocess.CalledProcessError as e:
-            log_subprocess_call(logger, cmd if 'cmd' in locals() else [], error=e)
+            log_subprocess_call(logger, cmd if "cmd" in locals() else [], error=e)
             logger.error(f"Failed to start Claude agents: {e}")
             logger.error(f"Error starting Claude agents: {e}")
             return False
-    
+
     def brief_agents(self) -> bool:
         """Send briefing messages to each agent"""
         try:
@@ -341,61 +326,63 @@ WORKING CONTEXT:
             if not os.path.exists(send_script):
                 # Look for it in PATH (for global installation)
                 import shutil
+
                 send_script_path = shutil.which("send-claude-message.sh")
                 if send_script_path:
                     send_script = send_script_path
                 else:
                     logger.error("send-claude-message.sh not found in script directory or PATH")
                     return False
-            
+
             # Pane mapping: 0.0 = Orchestrator, 0.1 = Alex, 0.2 = Morgan, 0.3 = Sam
             agent_panes = {
                 "Alex-Purist": f"{self.session_name}:0.1",
                 "Morgan-Pragmatist": f"{self.session_name}:0.2",
-                "Sam-Janitor": f"{self.session_name}:0.3"
+                "Sam-Janitor": f"{self.session_name}:0.3",
             }
-            
+
             for agent in self.agents:
                 pane_target = agent_panes.get(agent.name)
                 if not pane_target:
                     logger.error(f"Could not find pane for {agent.name}")
                     continue
-                
+
                 # Validate pane target and sanitize briefing
                 valid, error = SecurityValidator.validate_pane_target(pane_target)
                 if not valid:
                     logger.error(f"Invalid pane target {pane_target}: {error}")
                     continue
-                
+
                 # Enhance briefing with embedded context and ensure workspace
                 workspace = self.context_manager.ensure_workspace(self.session_name, agent.name)
                 enhanced_briefing = self.context_manager.inject_context_into_briefing(
-                    agent.briefing, 
-                    agent.role.lower().replace(" ", "_")
+                    agent.briefing, agent.role.lower().replace(" ", "_")
                 )
                 logger.debug(f"Agent {agent.name} workspace: {workspace.path}")
-                
+
                 # Send the briefing with proper escaping
                 sanitized_briefing = SecurityValidator.sanitize_message(enhanced_briefing)
                 cmd = [send_script, pane_target, sanitized_briefing]
-                logger.debug(f"Briefing {agent.name} with {len(sanitized_briefing)} chars (enhanced from {len(agent.briefing)})")
+                logger.debug(
+                    f"Briefing {agent.name} with {len(sanitized_briefing)} chars (enhanced from {len(agent.briefing)})"
+                )
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 log_subprocess_call(logger, cmd[:2] + ["<briefing_text>"], result)  # Don't log full briefing
-                
+
                 logger.info(f"Briefed {agent.name} in pane {pane_target}")
                 logger.info(f"Briefed {agent.name} in pane {pane_target}")
                 # Reduced delay in non-interactive mode
                 delay = 0.5 if self.non_interactive else 2
                 time.sleep(delay)
-            
+
             return True
-            
+
         except subprocess.CalledProcessError as e:
-            log_subprocess_call(logger, cmd[:2] + ["<briefing_text>"] if 'cmd' in locals() else [], error=e)
+            log_subprocess_call(logger, cmd[:2] + ["<briefing_text>"] if "cmd" in locals() else [], error=e)
             logger.error(f"Failed to brief agents: {e}")
             logger.error(f"Error briefing agents: {e}")
             return False
-    
+
     def setup_orchestrator(self) -> bool:
         """Brief the orchestrator about its role"""
         try:
@@ -404,13 +391,14 @@ WORKING CONTEXT:
             if not os.path.exists(send_script):
                 # Look for it in PATH (for global installation)
                 import shutil
+
                 send_script_path = shutil.which("send-claude-message.sh")
                 if send_script_path:
                     send_script = send_script_path
                 else:
                     logger.error("send-claude-message.sh not found in script directory or PATH")
                     return False
-            
+
             orchestrator_briefing = f"""You are the Orchestrator for a team of three AI software engineers:
 
 1. **Alex (Left Pane)** - The Perfectionist Architect
@@ -418,7 +406,7 @@ WORKING CONTEXT:
    - Will push for best practices and comprehensive testing
    - Resistant to shortcuts and technical debt
 
-2. **Morgan (Middle Pane)** - The Pragmatic Shipper  
+2. **Morgan (Middle Pane)** - The Pragmatic Shipper
    - Focuses on delivering working software quickly
    - Advocates for MVP approach and iterative development
    - Willing to take calculated shortcuts for business value
@@ -440,7 +428,7 @@ PANE LAYOUT:
 ┌──────────────────────────────────────────┐
 │             Orchestrator                 │ <- You are here (pane 0.0)
 ├────────────┬──────────────┬──────────────┤
-│    Alex    │    Morgan    │     Sam      │ 
+│    Alex    │    Morgan    │     Sam      │
 │ (pane 0.1) │  (pane 0.2)  │  (pane 0.3)  │
 └────────────┴──────────────┴──────────────┘
 
@@ -470,51 +458,53 @@ The agents are in these panes:
 Start by introducing yourself to all three agents and asking them to introduce themselves to each other."""
 
             # Start Claude in orchestrator pane with --dangerously-skip-permissions
-            subprocess.run([
-                "tmux", "send-keys", "-t", f"{self.session_name}:0.0",
-                "claude --dangerously-skip-permissions", "Enter"
-            ], check=True)
-            
+            subprocess.run(
+                [
+                    "tmux",
+                    "send-keys",
+                    "-t",
+                    f"{self.session_name}:0.0",
+                    "claude --dangerously-skip-permissions",
+                    "Enter",
+                ],
+                check=True,
+            )
+
             logger.info("Started Claude in orchestrator pane")
             # Reduced delay in non-interactive mode
             delay = 2 if self.non_interactive else 5
             time.sleep(delay)
-            
+
             # Validate target and send briefing to orchestrator
             orchestrator_target = f"{self.session_name}:0.0"
             valid, error = SecurityValidator.validate_pane_target(orchestrator_target)
             if not valid:
                 logger.error(f"Invalid orchestrator target: {error}")
                 return False
-            
+
             # Enhance orchestrator briefing with context and create workspace
-            orchestrator_workspace = self.context_manager.ensure_workspace(
-                self.session_name, "Orchestrator"
-            )
+            orchestrator_workspace = self.context_manager.ensure_workspace(self.session_name, "Orchestrator")
             enhanced_orchestrator_briefing = self.context_manager.inject_context_into_briefing(
-                orchestrator_briefing,
-                "orchestrator"
+                orchestrator_briefing, "orchestrator"
             )
             logger.debug(f"Orchestrator workspace: {orchestrator_workspace.path}")
-            
+
             sanitized_briefing = SecurityValidator.sanitize_message(enhanced_orchestrator_briefing)
-            subprocess.run([
-                send_script, orchestrator_target, sanitized_briefing
-            ], check=True)
-            
+            subprocess.run([send_script, orchestrator_target, sanitized_briefing], check=True)
+
             logger.info("Briefed orchestrator")
             return True
-            
+
         except subprocess.CalledProcessError as e:
             logger.error(f"Error setting up orchestrator: {e}")
             return False
-    
+
     def display_team_info(self):
         """Display information about the created team"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🚀 AI TEAM SUCCESSFULLY CREATED!")
-        print("="*60)
-        
+        print("=" * 60)
+
         print(f"\nSession: {self.session_name}")
         print("\nPane Layout:")
         print("┌──────────────────────────────────────────┐")
@@ -523,79 +513,78 @@ Start by introducing yourself to all three agents and asking them to introduce t
         print("│    Alex    │    Morgan    │     Sam      │")
         print("│ (pane 0.1) │  (pane 0.2)  │  (pane 0.3)  │")
         print("└────────────┴──────────────┴──────────────┘")
-        
+
         print("\nUseful Commands:")
         print(f"• Attach to session: tmux attach -t {self.session_name}")
         print(f"• List panes: tmux list-panes -t {self.session_name}")
         print("• Navigate panes: Ctrl+B, then arrow keys")
         print("• Send messages: send-claude-message.sh session:pane 'message'")
-        
+
         print("\nAgent Personalities:")
         print("🎯 Alex: Perfectionist, advocates for best practices, long-term thinking")
         print("⚡ Morgan: Pragmatist, focuses on shipping and business value")
         print("🧹 Sam: Code janitor, tackles technical debt and cleanup tasks")
-        
+
         print("\nNext Steps:")
         print("1. Attach to the session to see the orchestrator")
         print("2. The orchestrator will introduce the agents to each other")
         print("3. Give them a coding challenge to see their different approaches!")
-        print("\n" + "="*60)
-    
+        print("\n" + "=" * 60)
+
     def create_team(self):
         """Main method to create the complete AI team"""
         logger.info("Starting AI team creation process")
         print("🚀 Creating AI Team with Orchestrator + 3 Opinionated Agents...")
         print("-" * 60)
-        
+
         # Create agent profiles
         self.agents = self.create_agent_profiles()
         logger.info(f"Created {len(self.agents)} agent profiles")
         print(f"✓ Created {len(self.agents)} agent profiles (Alex, Morgan, Sam)")
-        
+
         # Create tmux session
         if not self.create_tmux_session():
             return False
-        
-        # Create agent panes  
+
+        # Create agent panes
         if not self.create_agent_panes():
             return False
-        
+
         # Start Claude in agent windows
         print("\n📡 Starting Claude agents...")
         if not self.start_claude_agents():
             return False
-        
+
         # Brief the agents
         print("\n📋 Briefing agents with their personalities...")
         if not self.brief_agents():
             return False
-        
+
         # Setup orchestrator last
         print("\n🎯 Setting up orchestrator...")
         if not self.setup_orchestrator():
             return False
-        
+
         # Create recovery script and verify agent readiness
         try:
             self.context_manager.create_recovery_script()
             logger.info("Created recovery script in working directory")
-            
+
             # Verify all agents are ready
             for agent in self.agents:
-                is_ready, issues = self.context_manager.verify_agent_readiness(
-                    self.session_name, agent.name
-                )
+                is_ready, issues = self.context_manager.verify_agent_readiness(self.session_name, agent.name)
                 if not is_ready:
                     logger.warning(f"Agent {agent.name} has issues: {issues}")
                 else:
                     logger.info(f"Agent {agent.name} verified and ready")
         except Exception as e:
             logger.warning(f"Could not complete setup verification: {e}")
-        
+
         # Display team info
         self.display_team_info()
         logger.info("AI team creation completed successfully")
         return True
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -606,47 +595,36 @@ Examples:
   python3 create_ai_team.py                    # Create default team
   python3 create_ai_team.py --session my-team  # Create with custom session name
   python3 create_ai_team.py --yes              # Non-interactive mode (fast)
-  
+
 This creates:
 - 1 Orchestrator (coordinates and mediates)
-- Alex: Perfectionist architect (quality-focused)  
+- Alex: Perfectionist architect (quality-focused)
 - Morgan: Pragmatic shipper (speed-focused)
 - Sam: Code janitor (cleanup-focused)
-        """
+        """,
     )
-    
+
     parser.add_argument(
-        "--session", "-s",
-        default="ai-team",
-        help="Name for the tmux session (default: ai-team)",
-        type=str
+        "--session", "-s", default="ai-team", help="Name for the tmux session (default: ai-team)", type=str
     )
-    
-    parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Enable verbose output"
-    )
-    
-    parser.add_argument(
-        "--yes", "-y",
-        action="store_true",
-        help="Non-interactive mode: skip prompts and use defaults"
-    )
-    
+
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+
+    parser.add_argument("--yes", "-y", action="store_true", help="Non-interactive mode: skip prompts and use defaults")
+
     args = parser.parse_args()
-    
+
     # Validate session name from args
     valid, error = SecurityValidator.validate_session_name(args.session)
     if not valid:
         logger.error(f"Invalid session name: {error}")
         print(f"❌ Invalid session name: {error}")  # User-facing error
         sys.exit(1)
-    
+
     # Create the team
     orchestrator = AITeamOrchestrator(non_interactive=args.yes)
     orchestrator.session_name = args.session
-    
+
     try:
         success = orchestrator.create_team()
         if success:
@@ -657,7 +635,7 @@ This creates:
             logger.error("Failed to create AI team")
             print("\n❌ Failed to create AI team")  # User-facing error
             sys.exit(1)
-            
+
     except KeyboardInterrupt:
         logger.warning("Setup interrupted by user")
         print("\n\n⚠️  Setup interrupted by user")
@@ -667,6 +645,7 @@ This creates:
         logger.error(f"Unexpected error: {e}")
         print(f"\n❌ Unexpected error: {e}")  # User-facing error
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

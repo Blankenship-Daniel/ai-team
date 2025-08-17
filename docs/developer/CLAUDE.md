@@ -53,7 +53,7 @@ As the Orchestrator, you maintain high-level oversight without getting bogged do
    ```bash
    # Before starting any new feature/task
    git checkout -b feature/[descriptive-name]
-   
+
    # After completing feature
    git add -A
    git commit -m "Complete: [feature description]"
@@ -178,7 +178,7 @@ sleep 5  # Wait for Claude to start
 # Send the briefing
 tmux send-keys -t $PROJECT_NAME:0 "You are responsible for the $PROJECT_NAME codebase. Your duties include:
 1. Getting the application running
-2. Checking GitHub issues for priorities  
+2. Checking GitHub issues for priorities
 3. Working on highest priority tasks
 4. Keeping the orchestrator informed of progress
 
@@ -198,7 +198,7 @@ The agent should check for:
 # Node.js project
 test -f package.json && cat package.json | grep scripts
 
-# Python project  
+# Python project
 test -f requirements.txt || test -f pyproject.toml || test -f setup.py
 
 # Ruby project
@@ -239,7 +239,7 @@ The orchestrator should:
 # Check agent status periodically
 tmux capture-pane -t $PROJECT_NAME:0 -p | tail -30
 
-# Check if dev server started successfully  
+# Check if dev server started successfully
 tmux capture-pane -t $PROJECT_NAME:2 -p | tail -20
 
 # Monitor for errors
@@ -353,7 +353,7 @@ tmux send-keys -t [session]:[dev-window] "STATUS UPDATE: Please provide: 1) Comp
 #### Status Update
 ```
 STATUS [AGENT_NAME] [TIMESTAMP]
-Completed: 
+Completed:
 - [Specific task 1]
 - [Specific task 2]
 Current: [What working on now]
@@ -390,7 +390,7 @@ test -f requirements.txt && echo "Python project"
 #### 2. Propose Team Structure
 
 **Small Project**: 1 Developer + 1 PM
-**Medium Project**: 2 Developers + 1 PM + 1 QA  
+**Medium Project**: 2 Developers + 1 PM + 1 QA
 **Large Project**: Lead + 2 Devs + PM + QA + DevOps
 
 #### 3. Deploy Team
@@ -515,7 +515,7 @@ CURRENT_WINDOW=$(tmux display-message -p "#{session_name}:#{window_index}")
 
 **Root Cause**: New tmux windows inherit the working directory from where tmux was originally started, NOT from the current session's active window
 
-**Solution**: 
+**Solution**:
 ```bash
 # Always use -c flag when creating windows
 tmux new-window -t session -n "window-name" -c "/correct/path"
@@ -648,7 +648,7 @@ When a command fails:
 #### Script Location and Usage
 - **Location**: `/Users/jasonedward/Coding/Tmux orchestrator/send-claude-message.sh`
 - **Permissions**: Already executable, ready to use
-- **Arguments**: 
+- **Arguments**:
   - First: target (session:window or session:window.pane)
   - Second: message (can contain spaces, will be properly handled)
 

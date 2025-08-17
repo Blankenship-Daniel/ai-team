@@ -16,7 +16,7 @@ tmux send-keys -t "$WINDOW" Enter
 
 ### **After:**
 ```bash
-# Send message 
+# Send message
 tmux send-keys -t "$WINDOW" "$MESSAGE"
 sleep 1    # 1-second delay for reliable typing
 tmux send-keys -t "$WINDOW" Enter

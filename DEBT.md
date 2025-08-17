@@ -82,7 +82,7 @@ pip freeze > requirements.txt
 ### File Size Distribution
 ```
 < 100 lines:  2 files
-100-300 lines: 5 files  
+100-300 lines: 5 files
 300-500 lines: 3 files
 > 500 lines:  1 file (create_ai_team.py)
 ```

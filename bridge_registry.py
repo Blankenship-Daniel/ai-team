@@ -11,7 +11,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 
 class BridgeRegistry:
@@ -198,11 +198,11 @@ class BridgeRegistry:
 
         return peers
 
-    def cleanup_old_bridges(self, max_age_days: int = 7, dry_run: bool = False) -> Dict:
+    def cleanup_old_bridges(self, max_age_days: int = 7, dry_run: bool = False) -> Dict[str, Any]:
         """Clean up old bridges and messages"""
         cutoff_time = datetime.now() - timedelta(days=max_age_days)
 
-        cleanup_stats = {
+        cleanup_stats: Dict[str, Any] = {
             "bridges_removed": 0,
             "messages_removed": 0,
             "space_freed": 0,

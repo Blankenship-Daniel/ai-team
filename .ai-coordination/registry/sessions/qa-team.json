@@ -1,10 +1,6 @@
 {
   "session_name": "qa-team",
-  "bridges": [
-    "bridge-7ac873de7552",
-    "bridge-b869a67f818e",
-    "bridge-7fcc4e9f79b7"
-  ],
+  "bridges": [],
   "created_at": "2025-08-16T17:18:11.969839",
-  "last_updated": "2025-08-16T18:27:38.390340"
+  "last_updated": "2025-08-16T18:48:31.487795"
 }

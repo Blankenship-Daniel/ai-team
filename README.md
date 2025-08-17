@@ -5,7 +5,7 @@
 ## 🤖 Key Capabilities & Autonomous Features
 
 - **Self-trigger** - Agents schedule their own check-ins and continue work autonomously
-- **Coordinate** - Project managers assign tasks to engineers across multiple codebases  
+- **Coordinate** - Project managers assign tasks to engineers across multiple codebases
 - **Persist** - Work continues even when you close your laptop
 - **Scale** - Run multiple teams working on different projects simultaneously
 
@@ -74,7 +74,7 @@ PROJECT: My Web App
 GOAL: Add user authentication system
 CONSTRAINTS:
 - Use existing database schema
-- Follow current code patterns  
+- Follow current code patterns
 - Commit every 30 minutes
 - Write tests for new features
 
@@ -91,7 +91,7 @@ tmux new-session -s my-project
 claude
 
 # 4. Give PM the spec and let it create an engineer
-"You are a Project Manager. Read project_spec.md and create an engineer 
+"You are a Project Manager. Read project_spec.md and create an engineer
 in window 1 to implement it. Schedule check-ins every 30 minutes."
 
 # 5. Schedule orchestrator check-in
@@ -157,7 +157,7 @@ DELIVERABLES:
 
 SUCCESS CRITERIA:
 - All forms validate properly
-- Payment processes without errors  
+- Payment processes without errors
 - Order data persists to database
 - Emails send on completion
 ```
@@ -240,7 +240,7 @@ tmux new-session -s orchestrator
 
 # Create project managers for each project
 tmux new-window -n frontend-pm
-tmux new-window -n backend-pm  
+tmux new-window -n backend-pm
 tmux new-window -n mobile-pm
 
 # Each PM manages their own engineers

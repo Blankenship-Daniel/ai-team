@@ -26,7 +26,7 @@ show_help() {
     echo "    connect <team1> <team2> \"<context>\"    Create bridge between teams"
     echo "    send <target-team> \"<message>\"         Send message to team"
     echo "    list                                     List all active bridges"
-    echo "    status <team>                           Show team's bridges"  
+    echo "    status <team>                           Show team's bridges"
     echo "    cleanup [--dry-run]                     Clean up old bridges"
     echo "    help                                    Show this help"
     echo ""
@@ -54,51 +54,51 @@ case "$COMMAND" in
             echo "Usage: ai-bridge connect <team1> <team2> \"<context>\""
             exit 1
         fi
-        
+
         TEAM1="$1"
-        TEAM2="$2" 
+        TEAM2="$2"
         CONTEXT="$3"
-        
+
         echo -e "${BLUE}🔗 Creating bridge: $TEAM1 ↔ $TEAM2${NC}"
         python3 "$BRIDGE_REGISTRY" create "$TEAM1" "$TEAM2" "$CONTEXT"
         ;;
-        
+
     "send"|"message")
         if [ $# -lt 2 ]; then
             echo -e "${RED}❌ Error: Missing arguments${NC}"
             echo "Usage: ai-bridge send <target-team> \"<message>\""
             exit 1
         fi
-        
+
         TARGET="$1"
         MESSAGE="$2"
-        
+
         echo -e "${BLUE}📤 Sending message to $TARGET${NC}"
         "$SEND_TO_PEER" "$TARGET" "$MESSAGE"
         ;;
-        
+
     "list"|"ls")
         echo -e "${BLUE}📋 Active Bridges${NC}"
         python3 "$BRIDGE_REGISTRY" list
         ;;
-        
+
     "status"|"info")
         if [ $# -lt 1 ]; then
             echo -e "${RED}❌ Error: Missing team name${NC}"
             echo "Usage: ai-bridge status <team>"
             exit 1
         fi
-        
+
         TEAM="$1"
         echo -e "${BLUE}📍 Bridge status for $TEAM${NC}"
         python3 "$BRIDGE_REGISTRY" status "$TEAM"
         ;;
-        
+
     "cleanup"|"clean")
         echo -e "${BLUE}🧹 Bridge cleanup${NC}"
         python3 "$BRIDGE_REGISTRY" cleanup "$@"
         ;;
-        
+
     *)
         echo -e "${RED}❌ Unknown command: '$COMMAND'${NC}"
         echo ""

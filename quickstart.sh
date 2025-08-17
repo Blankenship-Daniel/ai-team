@@ -170,7 +170,7 @@ Path: $CURRENT_DIR
 ## Team Structure
 - **Orchestrator** (pane 0.0): Coordinates the team
 - **Alex** (pane 0.1): Perfectionist architect
-- **Morgan** (pane 0.2): Pragmatic shipper  
+- **Morgan** (pane 0.2): Pragmatic shipper
 - **Sam** (pane 0.3): Code custodian
 
 ## Communication Protocol
@@ -221,11 +221,11 @@ echo -e "  ${GREEN}✅ Context preservation ready${NC}"
 if [ $NEED_INSTALL -eq 1 ]; then
     echo ""
     echo -e "${YELLOW}📥 Installing AI Team CLI...${NC}"
-    
+
     if [ -f "install.sh" ]; then
         echo -e "${CYAN}Running install.sh...${NC}"
         ./install.sh || handle_error "Installation failed"
-        
+
         # Add to PATH for current session if needed
         if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
             export PATH="$PATH:$HOME/.local/bin"
@@ -250,7 +250,7 @@ if tmux has-session -t ai-team 2>/dev/null; then
     echo -e "    1. Attach to existing:  ${GREEN}tmux attach -t ai-team${NC}"
     echo -e "    2. Kill and recreate:   ${YELLOW}tmux kill-session -t ai-team${NC}"
     echo ""
-    
+
     if [ "$AUTO_YES" = true ]; then
         echo -e "  ${YELLOW}Auto-kill mode enabled, killing existing session...${NC}"
         REPLY="y"
@@ -258,7 +258,7 @@ if tmux has-session -t ai-team 2>/dev/null; then
         read -p "  Would you like to kill the existing session and create a new one? (y/N): " -n 1 -r
         echo ""
     fi
-    
+
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}Killing existing session...${NC}"
         tmux kill-session -t ai-team
@@ -335,7 +335,7 @@ if tmux has-session -t ai-team 2>/dev/null; then
     echo -e "  • Kill session:   ${CYAN}tmux kill-session -t ai-team${NC}"
     echo -e "  • Rename window:  ${CYAN}Ctrl+b${NC} then ${CYAN},${NC}"
     echo ""
-    
+
     # Add context reminder if running from different directory
     if [ "$CURRENT_DIR" != "$SCRIPT_DIR" ]; then
         echo -e "${YELLOW}📁 Context Files:${NC}"
@@ -344,7 +344,7 @@ if tmux has-session -t ai-team 2>/dev/null; then
         echo -e "  • Status updates: ${CYAN}.ai-team/STATUS.md${NC}"
         echo ""
     fi
-    
+
     echo -e "${CYAN}═══════════════════════════════════════${NC}"
     echo -e "${GREEN}Ready to attach? Run:${NC} ${CYAN}tmux attach -t ai-team${NC}"
     echo -e "${CYAN}═══════════════════════════════════════${NC}"

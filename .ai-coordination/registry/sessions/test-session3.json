@@ -1,8 +1,6 @@
 {
   "session_name": "test-session3",
-  "bridges": [
-    "bridge-491cbedb7485"
-  ],
+  "bridges": [],
   "created_at": "2025-08-16T17:01:41.208025",
-  "last_updated": "2025-08-16T17:01:41.208028"
+  "last_updated": "2025-08-16T18:48:31.449157"
 }

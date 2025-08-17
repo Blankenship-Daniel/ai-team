@@ -39,7 +39,7 @@ tmux attach -t ai-team
 - **Says things like**: "This needs proper error handling", "Where are the tests?", "Technical debt always comes due with interest"
 
 ### **Morgan "The Pragmatist"** (Bottom-Right Pane)
-- **Focus**: Shipping MVP, delivering business value quickly  
+- **Focus**: Shipping MVP, delivering business value quickly
 - **Personality**: Results-oriented, deadline-driven
 - **Says things like**: "Perfect is the enemy of good", "Let's ship and iterate", "Users don't care about our internal architecture"
 
@@ -84,13 +84,13 @@ Unlike typical AI assistants that are overly agreeable, these agents have:
 ```
 Orchestrator: "We need to add user authentication to our app"
 
-Alex: "We should implement proper OAuth 2.0 with PKCE, comprehensive 
-      error handling, rate limiting, and full test coverage. This is 
+Alex: "We should implement proper OAuth 2.0 with PKCE, comprehensive
+      error handling, rate limiting, and full test coverage. This is
       security-critical code that needs to be bulletproof."
 
-Morgan: "Let's start with a simple email/password system using a proven 
-        library like Auth0 or Firebase. We can add OAuth later once we 
-        validate the core user flow. Perfect security doesn't matter if 
+Morgan: "Let's start with a simple email/password system using a proven
+        library like Auth0 or Firebase. We can add OAuth later once we
+        validate the core user flow. Perfect security doesn't matter if
         we never ship."
 
 Orchestrator: [Mediates and makes the final call]

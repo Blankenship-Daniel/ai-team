@@ -251,7 +251,7 @@ If you lose context, create the tools using the scripts provided above."""
                 dest = tools_dir / tool
                 try:
                     shutil.copy2(source, dest)
-                    os.chmod(dest, 0o755)
+                    os.chmod(dest, 0o750)
                     logger.debug(f"Copied {tool} to workspace")
                 except Exception as e:
                     logger.error(f"Failed to copy {tool}: {e}")
@@ -398,7 +398,7 @@ echo "You can now continue with your tasks."
 
         try:
             script_path.write_text(script_content)
-            os.chmod(script_path, 0o755)
+            os.chmod(script_path, 0o750)
             logger.info(f"Created recovery script at {script_path}")
             return script_path
         except Exception as e:

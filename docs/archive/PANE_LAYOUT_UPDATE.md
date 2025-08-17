@@ -48,7 +48,7 @@ ai-team -s my-project      # Custom session name
 # Message Alex (top-right pane)
 send-claude-message.sh ai-team:0.1 "Alex, thoughts on this architecture?"
 
-# Message Morgan (bottom-right pane)  
+# Message Morgan (bottom-right pane)
 send-claude-message.sh ai-team:0.2 "Morgan, what's the MVP version?"
 
 # Check responses

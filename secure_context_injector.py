@@ -455,8 +455,8 @@ if __name__ == "__main__":
     # Example usage
     escaper = SecureContextEscaper(EscapingLevel.PARANOID)
 
-    # Test dangerous path injection
-    dangerous_path = "/tmp; rm -rf /"
+    # Test dangerous path injection (test data only)
+    dangerous_path = "/tmp; rm -rf /"  # nosec B108
     result = escaper.escape_for_context(dangerous_path, SecurityContext.AGENT_BRIEFING)
 
     print(f"Original: {dangerous_path}")

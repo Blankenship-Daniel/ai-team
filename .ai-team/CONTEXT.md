@@ -6,7 +6,7 @@ Path: /Users/ship/Documents/code/Tmux-Orchestrator
 ## Team Structure
 - **Orchestrator** (pane 0.0): Coordinates the team
 - **Alex** (pane 0.1): Perfectionist architect
-- **Morgan** (pane 0.2): Pragmatic shipper  
+- **Morgan** (pane 0.2): Pragmatic shipper
 - **Sam** (pane 0.3): Code custodian
 
 ## Communication Protocol

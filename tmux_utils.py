@@ -163,9 +163,9 @@ class TmuxOrchestrator:
             logger.error(f"Invalid window index: {error}")
             return False
 
-        # Sanitize keys to prevent injection
+        # Validate keys to prevent injection
         try:
-            sanitized_keys = SecurityValidator.sanitize_message(keys)
+            SecurityValidator.sanitize_message(keys)
         except ValueError as e:
             logger.error(f"Invalid keys: {e}")
             return False
@@ -215,10 +215,10 @@ class TmuxOrchestrator:
     def get_all_windows_status(self) -> Dict[str, Any]:
         """Get status of all windows across all sessions"""
         sessions = self.get_tmux_sessions()
-        status = {"timestamp": datetime.now().isoformat(), "sessions": []}
+        status: Dict[str, Any] = {"timestamp": datetime.now().isoformat(), "sessions": []}
 
         for session in sessions:
-            session_data = {"name": session.name, "attached": session.attached, "windows": []}
+            session_data: Dict[str, Any] = {"name": session.name, "attached": session.attached, "windows": []}
 
             for window in session.windows:
                 window_info = self.get_window_info(session.name, window.window_index)

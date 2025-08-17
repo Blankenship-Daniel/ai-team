@@ -16,7 +16,7 @@ case "$1" in
     "register")
         TEAM_NAME="$2"
         [ -z "$TEAM_NAME" ] && echo "Usage: $0 register <team-name>" && exit 1
-        
+
         # Register team
         python3 -c "
 import json, sys
@@ -33,12 +33,12 @@ with open('$WORK_QUEUE', 'r+') as f:
 print('✅ Team $TEAM_NAME registered')
 "
         ;;
-        
+
     "add-task")
         TASK="$2"
         ASSIGNEE="${3:-any}"
         [ -z "$TASK" ] && echo "Usage: $0 add-task '<description>' [assignee]" && exit 1
-        
+
         python3 -c "
 import json, uuid, sys
 with open('$WORK_QUEUE', 'r+') as f:
@@ -57,11 +57,11 @@ with open('$WORK_QUEUE', 'r+') as f:
 print('📋 Task added:', task['id'])
 "
         ;;
-        
+
     "claim-task")
         TEAM_NAME="$2"
         [ -z "$TEAM_NAME" ] && echo "Usage: $0 claim-task <team-name>" && exit 1
-        
+
         python3 -c "
 import json
 with open('$WORK_QUEUE', 'r+') as f:
@@ -79,12 +79,12 @@ with open('$WORK_QUEUE', 'r+') as f:
     print('❌ No available tasks for $TEAM_NAME')
 "
         ;;
-        
+
     "complete-task")
         TASK_ID="$2"
         TEAM_NAME="$3"
         [ -z "$TASK_ID" ] && echo "Usage: $0 complete-task <task-id> <team-name>" && exit 1
-        
+
         python3 -c "
 import json
 with open('$WORK_QUEUE', 'r+') as f:
@@ -101,12 +101,12 @@ with open('$WORK_QUEUE', 'r+') as f:
     print('❌ Task not found or not claimed by $TEAM_NAME')
 "
         ;;
-        
+
     "broadcast")
         MESSAGE="$2"
         FROM_TEAM="$3"
         [ -z "$MESSAGE" ] && echo "Usage: $0 broadcast '<message>' [from-team]" && exit 1
-        
+
         python3 -c "
 import json, uuid
 with open('$WORK_QUEUE', 'r+') as f:
@@ -126,7 +126,7 @@ with open('$WORK_QUEUE', 'r+') as f:
 print('📢 Message broadcasted')
 "
         ;;
-        
+
     "status")
         echo "🤖 AI Team Coordination Status"
         echo "=============================="
@@ -150,7 +150,7 @@ for msg in data['messages'][-5:]:  # Show last 5 messages
     print(f'  - [{msg[\"from\"]}]: {msg[\"message\"][:60]}...')
 "
         ;;
-        
+
     "watch")
         echo "👀 Watching for coordination updates... (Ctrl+C to stop)"
         while true; do
@@ -163,7 +163,7 @@ for msg in data['messages'][-5:]:  # Show last 5 messages
             sleep 2
         done
         ;;
-        
+
     *)
         echo "AI Team Coordination"
         echo ""

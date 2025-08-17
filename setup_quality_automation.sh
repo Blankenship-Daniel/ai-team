@@ -122,39 +122,39 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install black isort flake8 bandit safety coverage pytest
-        
+
     - name: Format check
       run: |
         black --check --line-length=100 .
         isort --check-only --profile=black --line-length=100 .
-        
+
     - name: Lint
       run: flake8 --max-line-length=100 --extend-ignore=E203,W503 .
-      
+
     - name: Security scan
       run: bandit -r . -f json
-      
+
     - name: Dependency check
       run: safety check
-      
+
     - name: Test with coverage
       run: |
         coverage run --source=. -m pytest
         coverage report --fail-under=80
-        
+
     - name: Quality automation
       run: python quality_automation.py
 EOF

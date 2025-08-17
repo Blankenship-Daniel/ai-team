@@ -5,7 +5,7 @@
 - **[AI Team Usage](user-guide/AI_TEAM_USAGE.md)** - Detailed usage instructions
 - **[AI Team README](user-guide/README_AI_TEAM.md)** - Advanced configuration
 
-## For Developers  
+## For Developers
 - **[Claude Integration](developer/CLAUDE.md)** - Technical integration details
 - **[Development Learnings](developer/LEARNINGS.md)** - Lessons learned and best practices
 
@@ -16,7 +16,7 @@
 ## Archive
 Historical documentation preserved for reference:
 - [Communication Updates](archive/COMMUNICATION_UPDATE.md)
-- [Pane Layout Updates](archive/PANE_LAYOUT_UPDATE.md) 
+- [Pane Layout Updates](archive/PANE_LAYOUT_UPDATE.md)
 - [Installation Complete Notes](archive/INSTALLATION_COMPLETE.md)
 - [Next Check Notes](archive/next_check_note.txt)
 
