@@ -1,6 +1,8 @@
 {
   "session_name": "Tmux-Orchestrator",
-  "bridges": [],
+  "bridges": [
+    "bridge-31979d88272d"
+  ],
   "created_at": "2025-08-16T18:19:09.798149",
-  "last_updated": "2025-08-16T18:48:31.529831"
+  "last_updated": "2025-08-16T19:20:15.970873"
 }

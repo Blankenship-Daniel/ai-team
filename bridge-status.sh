@@ -1,8 +1,8 @@
 #!/bin/bash
 echo "🔗 Bridge Status:"
-echo "  Session 1: bsnes"
+echo "  Session 1: bsnes-plus"
 echo "  Session 2: snes-modder"
-echo "  Context: Since both of these projects are working on similar things. Lets have each Orchestrator review the other Orchestrators code to see how we can learn from each other"
+echo "  Context: We're currently working on figuring out how to reverse engineer The Legend of Zelda: A Link to the Past, a classic Super Nintendo game. Since you both are working on similar projects, combine your efforts to create a single robust solution. Use all available snes and zelda related mcp servers to guide your efforts."
 echo "  Coordination Dir: $(pwd)/.ai-coordination"
 echo ""
 echo "📊 Message Count:"

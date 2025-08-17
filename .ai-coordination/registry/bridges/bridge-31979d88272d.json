@@ -1,0 +1,9 @@
+{
+  "bridge_id": "bridge-31979d88272d",
+  "session1": "snes-modder",
+  "session2": "Tmux-Orchestrator",
+  "coordination_context": "Testing fixed context messaging",
+  "created_at": "2025-08-16T19:20:15.969489",
+  "status": "active",
+  "last_activity": "2025-08-16T19:20:15.969497"
+}

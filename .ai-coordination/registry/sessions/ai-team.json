@@ -1,6 +1,8 @@
 {
   "session_name": "ai-team",
-  "bridges": [],
+  "bridges": [
+    "bridge-e846da75db92"
+  ],
   "created_at": "2025-08-16T19:14:08.673489",
-  "last_updated": "2025-08-16T19:15:46.381449"
+  "last_updated": "2025-08-16T19:19:03.801771"
 }

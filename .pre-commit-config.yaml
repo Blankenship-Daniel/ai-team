@@ -7,6 +7,7 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
       - id: check-json
+        exclude: 'legacy-backup/'
       - id: check-merge-conflict
       - id: debug-statements
 

@@ -7,11 +7,10 @@ Supports multiple simultaneous bridges with cleanup
 import json
 import subprocess
 import sys
-import time
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class BridgeRegistry:
@@ -161,7 +160,7 @@ class BridgeRegistry:
                 indent=2,
             )
 
-    def list_bridges(self) -> List[Dict]:
+    def list_bridges(self) -> List[Dict[str, Any]]:
         """List all active bridges"""
         index_file = self.registry_dir / "active-bridges.json"
 
@@ -171,7 +170,8 @@ class BridgeRegistry:
         with open(index_file, "r") as f:
             data = json.load(f)
 
-        return data.get("active_bridges", [])
+        bridges_data = data.get("active_bridges", [])
+        return list(bridges_data)
 
     def get_session_bridges(self, session: str) -> List[str]:
         """Get all bridges a session participates in"""
@@ -183,7 +183,8 @@ class BridgeRegistry:
         with open(session_file, "r") as f:
             session_data = json.load(f)
 
-        return session_data.get("bridges", [])
+        bridges_list = session_data.get("bridges", [])
+        return list(bridges_list)
 
     def find_peer_sessions(self, session: str) -> List[Tuple[str, str]]:
         """Find all peer sessions for a given session"""
@@ -272,47 +273,53 @@ tmux send-keys -t "{session1}:0.0" "📨 New message from {session2}: $(printf '
 
     def _notify_sessions_of_bridge(self, session1: str, session2: str, context: str, bridge_id: str):
         """Send context notification to both tmux sessions when bridge is created"""
-        notification_msg = f"""🔗 BRIDGE ESTABLISHED
-Bridge ID: {bridge_id}
-Connected to: {session2 if session1 != session2 else session1}
-Context: {context}
-Use 'ai-bridge send {session2}' to communicate"""
+        # Format as a shell comment to avoid command errors
+        notification_lines = [
+            "# 🔗 BRIDGE ESTABLISHED",
+            f"# Bridge ID: {bridge_id}",
+            f"# Connected to: {session2 if session1 != session2 else session1}",
+            f"# Context: {context}",
+            f"# Use 'ai-bridge send {session2}' to communicate",
+        ]
 
         # Try to notify session1 (use :0.0 for orchestrator pane)
         try:
             import subprocess
 
-            subprocess.run(
-                ["tmux", "send-keys", "-t", f"{session1}:0.0", "-l", notification_msg], check=False, capture_output=True
-            )
-            subprocess.run(["tmux", "send-keys", "-t", f"{session1}:0.0", "C-m"], check=False, capture_output=True)
+            # Send each line as a comment
+            for line in notification_lines:
+                subprocess.run(
+                    ["tmux", "send-keys", "-t", f"{session1}:0.0", "-l", line], check=False, capture_output=True
+                )
+                subprocess.run(["tmux", "send-keys", "-t", f"{session1}:0.0", "C-m"], check=False, capture_output=True)
             print(f"   📤 Context sent to {session1}")
         except Exception:
             print(f"   ⚠️  Could not notify {session1} (session may not exist)")
 
         # Prepare notification for session2
-        notification_msg2 = f"""🔗 BRIDGE ESTABLISHED
-Bridge ID: {bridge_id}
-Connected to: {session1}
-Context: {context}
-Use 'ai-bridge send {session1}' to communicate"""
+        notification_lines2 = [
+            "# 🔗 BRIDGE ESTABLISHED",
+            f"# Bridge ID: {bridge_id}",
+            f"# Connected to: {session1}",
+            f"# Context: {context}",
+            f"# Use 'ai-bridge send {session1}' to communicate",
+        ]
 
         # Try to notify session2
         try:
-            subprocess.run(
-                ["tmux", "send-keys", "-t", f"{session2}:0.0", "-l", notification_msg2],
-                check=False,
-                capture_output=True,
-            )
-            subprocess.run(["tmux", "send-keys", "-t", f"{session2}:0.0", "C-m"], check=False, capture_output=True)
+            # Send each line as a comment
+            for line in notification_lines2:
+                subprocess.run(
+                    ["tmux", "send-keys", "-t", f"{session2}:0.0", "-l", line], check=False, capture_output=True
+                )
+                subprocess.run(["tmux", "send-keys", "-t", f"{session2}:0.0", "C-m"], check=False, capture_output=True)
             print(f"   📤 Context sent to {session2}")
         except Exception:
             print(f"   ⚠️  Could not notify {session2} (session may not exist)")
 
-    def cleanup_old_bridges(self, max_age_days: int = 7, dry_run: bool = False) -> Dict:
+    def cleanup_old_bridges(self, max_age_days: int = 7, dry_run: bool = False) -> Dict[str, Any]:
         """Clean up old bridges and messages"""
         cutoff_time = datetime.now() - timedelta(days=max_age_days)
-
         cleanup_stats = {
             "bridges_removed": 0,
             "messages_removed": 0,
@@ -320,60 +327,86 @@ Use 'ai-bridge send {session1}' to communicate"""
             "errors": [],
         }
 
-        # Find old bridges
+        # Process each bridge file
         for bridge_file in self.bridges_dir.glob("*.json"):
-            try:
-                with open(bridge_file, "r") as f:
-                    bridge_data = json.load(f)
-
-                last_activity = datetime.fromisoformat(bridge_data.get("last_activity", bridge_data["created_at"]))
-
-                if last_activity < cutoff_time:
-                    bridge_id = bridge_data["bridge_id"]
-
-                    if not dry_run:
-                        # Remove bridge config
-                        bridge_file.unlink()
-
-                        # Remove message directory
-                        msg_dir = self.messages_dir / bridge_id
-                        if msg_dir.exists():
-                            for msg_file in msg_dir.glob("*.json"):
-                                cleanup_stats["space_freed"] += msg_file.stat().st_size
-                                msg_file.unlink()
-                                cleanup_stats["messages_removed"] += 1
-                            msg_dir.rmdir()
-
-                        # Update session mappings
-                        self._remove_bridge_from_sessions(bridge_id)
-
-                        # ISSUE FIX: Remove generated communication scripts
-                        self._cleanup_bridge_scripts(bridge_data["session1"], bridge_data["session2"], bridge_id)
-
-                    cleanup_stats["bridges_removed"] += 1
-                    print(f"🗑️  {'Would remove' if dry_run else 'Removed'} old bridge: {bridge_id}")
-
-            except Exception as e:
-                cleanup_stats["errors"].append(f"Error processing {bridge_file}: {e}")
+            self._process_bridge_file(bridge_file, cutoff_time, cleanup_stats, dry_run)
 
         if not dry_run:
-            # Update active bridges index
-            self._update_active_bridges()
-
-            # Record cleanup
-            cleanup_log = self.cleanup_dir / "last-cleanup.json"
-            with open(cleanup_log, "w") as f:
-                json.dump(
-                    {
-                        "cleanup_time": datetime.now().isoformat(),
-                        "max_age_days": max_age_days,
-                        "stats": cleanup_stats,
-                    },
-                    f,
-                    indent=2,
-                )
+            self._finalize_cleanup(cleanup_stats, max_age_days)
 
         return cleanup_stats
+
+    def _process_bridge_file(self, bridge_file, cutoff_time, cleanup_stats, dry_run):
+        """Process a single bridge file for cleanup"""
+        try:
+            with open(bridge_file, "r") as f:
+                bridge_data = json.load(f)
+
+            last_activity = datetime.fromisoformat(bridge_data.get("last_activity", bridge_data["created_at"]))
+
+            if last_activity < cutoff_time:
+                bridge_id = bridge_data["bridge_id"]
+                self._remove_old_bridge(bridge_file, bridge_data, cleanup_stats, dry_run)
+                print(f"🗑️  {'Would remove' if dry_run else 'Removed'} old bridge: {bridge_id}")
+
+        except Exception as e:
+            error_list = cleanup_stats["errors"]
+            if isinstance(error_list, list):
+                error_list.append(f"Error processing {bridge_file}: {e}")
+
+    def _remove_old_bridge(self, bridge_file, bridge_data, cleanup_stats, dry_run):
+        """Remove an old bridge and its associated data"""
+        bridge_id = bridge_data["bridge_id"]
+
+        if not dry_run:
+            # Remove bridge config
+            bridge_file.unlink()
+
+            # Remove message directory
+            self._cleanup_bridge_messages(bridge_id, cleanup_stats)
+
+            # Update session mappings
+            self._remove_bridge_from_sessions(bridge_id)
+
+            # Remove generated communication scripts
+            self._cleanup_bridge_scripts(bridge_data["session1"], bridge_data["session2"], bridge_id)
+
+        # Update stats
+        bridges_removed = cleanup_stats["bridges_removed"]
+        if isinstance(bridges_removed, int):
+            cleanup_stats["bridges_removed"] = bridges_removed + 1
+
+    def _cleanup_bridge_messages(self, bridge_id, cleanup_stats):
+        """Clean up message files for a bridge"""
+        msg_dir = self.messages_dir / bridge_id
+        if msg_dir.exists():
+            for msg_file in msg_dir.glob("*.json"):
+                space_freed = cleanup_stats["space_freed"]
+                if isinstance(space_freed, int):
+                    cleanup_stats["space_freed"] = space_freed + int(msg_file.stat().st_size)
+                msg_file.unlink()
+                messages_removed = cleanup_stats["messages_removed"]
+                if isinstance(messages_removed, int):
+                    cleanup_stats["messages_removed"] = messages_removed + 1
+            msg_dir.rmdir()
+
+    def _finalize_cleanup(self, cleanup_stats, max_age_days):
+        """Finalize cleanup by updating indexes and logging"""
+        # Update active bridges index
+        self._update_active_bridges()
+
+        # Record cleanup
+        cleanup_log = self.cleanup_dir / "last-cleanup.json"
+        with open(cleanup_log, "w") as f:
+            json.dump(
+                {
+                    "cleanup_time": datetime.now().isoformat(),
+                    "max_age_days": max_age_days,
+                    "stats": cleanup_stats,
+                },
+                f,
+                indent=2,
+            )
 
     def _remove_bridge_from_sessions(self, bridge_id: str):
         """Remove bridge from all session mappings"""
@@ -473,6 +506,59 @@ FILES CREATED:
     )
 
 
+def handle_create_command(registry: BridgeRegistry) -> None:
+    """Handle create command"""
+    if len(sys.argv) >= 5:
+        registry.create_bridge(sys.argv[2], sys.argv[3], " ".join(sys.argv[4:]))
+    else:
+        print("❌ Usage: ai-bridge-old create <session1> <session2> <context>")
+        sys.exit(1)
+
+
+def handle_list_command(registry: BridgeRegistry) -> None:
+    """Handle list command"""
+    bridges = registry.list_bridges()
+    print(f"📋 Active Bridges ({len(bridges)}):")
+    for bridge in bridges:
+        print(f"  🔗 {bridge['bridge_id']}")
+        print(f"     {bridge['session1']} ↔ {bridge['session2']}")
+        print(f"     Context: {bridge['context']}")
+        print(f"     Created: {bridge['created_at']}")
+        print()
+
+
+def handle_cleanup_command(registry: BridgeRegistry) -> None:
+    """Handle cleanup command"""
+    dry_run = "--dry-run" in sys.argv
+    max_age = 7
+
+    if "--max-age-days" in sys.argv:
+        idx = sys.argv.index("--max-age-days")
+        if idx + 1 < len(sys.argv):
+            max_age = int(sys.argv[idx + 1])
+
+    stats = registry.cleanup_old_bridges(max_age, dry_run)
+    print(f"🗑️  Cleanup {'(DRY RUN)' if dry_run else 'COMPLETED'}:")
+    print(f"   Bridges removed: {stats['bridges_removed']}")
+    print(f"   Messages removed: {stats['messages_removed']}")
+    print(f"   Space freed: {stats['space_freed']} bytes")
+    if stats["errors"]:
+        print(f"   Errors: {len(stats['errors'])}")
+
+
+def handle_status_command(registry: BridgeRegistry) -> None:
+    """Handle status command"""
+    if len(sys.argv) >= 3:
+        session = sys.argv[2]
+        peers = registry.find_peer_sessions(session)
+        print(f"📍 Session '{session}' bridges:")
+        for peer, bridge_id in peers:
+            print(f"   {session} ↔ {peer} (via {bridge_id})")
+    else:
+        print("❌ Usage: ai-bridge-old status <session>")
+        sys.exit(1)
+
+
 def main():
     """CLI interface for bridge registry"""
     if len(sys.argv) < 2 or (len(sys.argv) >= 2 and sys.argv[1] in ["help", "--help", "-h"]):
@@ -482,43 +568,14 @@ def main():
     registry = BridgeRegistry()
     command = sys.argv[1]
 
-    if command == "create" and len(sys.argv) >= 5:
-        bridge_id = registry.create_bridge(sys.argv[2], sys.argv[3], " ".join(sys.argv[4:]))
-
+    if command == "create":
+        handle_create_command(registry)
     elif command == "list":
-        bridges = registry.list_bridges()
-        print(f"📋 Active Bridges ({len(bridges)}):")
-        for bridge in bridges:
-            print(f"  🔗 {bridge['bridge_id']}")
-            print(f"     {bridge['session1']} ↔ {bridge['session2']}")
-            print(f"     Context: {bridge['context']}")
-            print(f"     Created: {bridge['created_at']}")
-            print()
-
+        handle_list_command(registry)
     elif command == "cleanup":
-        dry_run = "--dry-run" in sys.argv
-        max_age = 7
-
-        if "--max-age-days" in sys.argv:
-            idx = sys.argv.index("--max-age-days")
-            if idx + 1 < len(sys.argv):
-                max_age = int(sys.argv[idx + 1])
-
-        stats = registry.cleanup_old_bridges(max_age, dry_run)
-        print(f"🗑️  Cleanup {'(DRY RUN)' if dry_run else 'COMPLETED'}:")
-        print(f"   Bridges removed: {stats['bridges_removed']}")
-        print(f"   Messages removed: {stats['messages_removed']}")
-        print(f"   Space freed: {stats['space_freed']} bytes")
-        if stats["errors"]:
-            print(f"   Errors: {len(stats['errors'])}")
-
-    elif command == "status" and len(sys.argv) >= 3:
-        session = sys.argv[2]
-        peers = registry.find_peer_sessions(session)
-        print(f"📍 Session '{session}' bridges:")
-        for peer, bridge_id in peers:
-            print(f"   {session} ↔ {peer} (via {bridge_id})")
-
+        handle_cleanup_command(registry)
+    elif command == "status":
+        handle_status_command(registry)
     else:
         print(f"❌ Unknown command: '{command}'")
         print("\n💡 Try: bridge_registry.py help")

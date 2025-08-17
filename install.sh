@@ -96,7 +96,7 @@ fi
 
 # Verify all required files exist before installation
 echo -e "${BLUE}🔍 Verifying required files...${NC}"
-REQUIRED_FILES=("create_ai_team.py" "ai-bridge" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "send-claude-message.sh" "schedule_with_note.sh" "check-peer-messages.sh" "ai-team")
+REQUIRED_FILES=("create_ai_team.py" "ai-bridge" "ai-bridge-old" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "send-claude-message.sh" "schedule_with_note.sh" "check-peer-messages.sh" "ai-team")
 
 for file in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$SOURCE_DIR/$file" ]; then
@@ -117,6 +117,11 @@ echo -e "${GREEN}✓ Copied create_ai_team.py${NC}"
 cp "$SOURCE_DIR/ai-bridge" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/ai-bridge"
 echo -e "${GREEN}✓ Copied ai-bridge${NC}"
+
+# Copy bridge registry backend (required by ai-bridge)
+cp "$SOURCE_DIR/ai-bridge-old" "$INSTALL_DIR/"
+chmod +x "$INSTALL_DIR/ai-bridge-old"
+echo -e "${GREEN}✓ Copied ai-bridge-old (bridge registry backend)${NC}"
 
 # Copy peer communication tools
 cp "$SOURCE_DIR/check-peer-messages.sh" "$INSTALL_DIR/"
@@ -184,6 +189,7 @@ echo ""
 echo "Files installed:"
 echo "  • create_ai_team.py (main script)"
 echo "  • ai-bridge (multi-bridge coordination)"
+echo "  • ai-bridge-old (bridge registry backend)"
 echo "  • tmux_utils.py (tmux management)"
 echo "  • check-peer-messages.sh (peer communication)"
 echo "  • security_validator.py (input validation)"

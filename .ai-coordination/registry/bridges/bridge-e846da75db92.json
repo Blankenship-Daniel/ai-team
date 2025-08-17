@@ -1,0 +1,9 @@
+{
+  "bridge_id": "bridge-e846da75db92",
+  "session1": "ai-team",
+  "session2": "bsnes",
+  "coordination_context": "Testing context messaging",
+  "created_at": "2025-08-16T19:19:03.801367",
+  "status": "active",
+  "last_activity": "2025-08-16T19:19:03.801375"
+}
