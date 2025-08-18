@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 from logging_config import setup_logging
-from security_validator import SecurityValidator
 
 logger = setup_logging(__name__)
 
@@ -144,15 +143,7 @@ chmod +x send-claude-message.sh
         logger.warning("Could not find install dir, using current directory")
         return current.resolve()
 
-    def inject_context(self, briefing: str, role: str, environment: Dict[str, str] = None) -> str:
-        """Inject operational context into agent briefing - implements IContextInjector"""
-        return self._inject_context_impl(briefing, role, environment or {})
-
     def inject_context_into_briefing(self, original_briefing: str, role: str) -> str:
-        """Legacy method - delegates to inject_context for backward compatibility"""
-        return self.inject_context(original_briefing, role, {})
-
-    def _inject_context_impl(self, original_briefing: str, role: str, environment: Dict[str, str]) -> str:
         """
         Inject context into agent briefing using embedded approach.
 
@@ -198,20 +189,7 @@ If you lose context, create the tools using the scripts provided above."""
         logger.debug(f"Enhanced briefing: {len(enhanced_briefing)} chars (from {len(original_briefing)})")
         return enhanced_briefing
 
-    def create_workspace(self, session_name: str, agent_name: str) -> Path:
-        """Create agent workspace with tools and context - implements IContextInjector"""
-        workspace = self._ensure_workspace_impl(session_name, agent_name)
-        return workspace.path
-
-    def sanitize_briefing(self, briefing: str) -> str:
-        """Sanitize briefing for safe transmission - implements IContextInjector"""
-        return SecurityValidator.sanitize_message(briefing)
-
     def ensure_workspace(self, session_name: str, agent_name: str) -> AgentWorkspace:
-        """Legacy method - delegates to internal implementation"""
-        return self._ensure_workspace_impl(session_name, agent_name)
-
-    def _ensure_workspace_impl(self, session_name: str, agent_name: str) -> AgentWorkspace:
         """
         Ensure agent has a workspace with tools (SECONDARY mechanism).
 

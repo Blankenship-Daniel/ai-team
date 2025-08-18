@@ -1,11 +1,11 @@
 {
-  "cleanup_time": "2025-08-17T21:42:52.948701",
+  "cleanup_time": "2025-08-17T22:40:47.164006",
   "max_age_days": "complete",
   "stats": {
-    "bridges_removed": 1,
+    "bridges_removed": 2,
     "messages_removed": 0,
-    "sessions_removed": 2,
-    "space_freed": 2743,
+    "sessions_removed": 4,
+    "space_freed": 4973,
     "errors": []
   }
 }

@@ -7,7 +7,7 @@ import sys
 import time
 import signal
 from datetime import datetime
-from context_manager import get_context_manager
+from unified_context_manager import UnifiedContextManager
 from logging_config import setup_logging
 
 logger = setup_logging(__name__)
@@ -17,7 +17,7 @@ class AutoContextKeeper:
     """Daemon process for maintaining context health"""
 
     def __init__(self):
-        self.manager = get_context_manager()
+        self.manager = UnifiedContextManager()
         self.running = True
 
         # Register signal handlers for graceful shutdown

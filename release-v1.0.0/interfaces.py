@@ -231,26 +231,6 @@ class BaseTeamOrchestrator(ABC):
         return True, None
 
 
-class IContextManager(Protocol):
-    """Protocol for context management across agent workspaces"""
-
-    def prepare_agent_context(self, agent_name: str, briefing: str, working_dir: str) -> str:
-        """Prepare complete context for an agent including briefing and embedded knowledge"""
-        ...
-
-    def create_workspace(self, agent_name: str, working_dir: str) -> Optional[Path]:
-        """Create agent workspace with tools and context files"""
-        ...
-
-    def get_embedded_context(self) -> str:
-        """Get core embedded context for agent briefings"""
-        ...
-
-    def cleanup_workspace(self, agent_name: str) -> bool:
-        """Clean up agent workspace"""
-        ...
-
-
 # Type Aliases for Complex Types
 
 PaneLayout = Dict[str, str]  # pane_id -> agent_name

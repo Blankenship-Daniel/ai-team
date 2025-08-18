@@ -1,5 +1,14 @@
 {
-  "active_bridges": [],
-  "total_bridges": 0,
-  "last_updated": "2025-08-17T21:42:52.948551"
+  "active_bridges": [
+    {
+      "bridge_id": "bridge-f8c006c6e7e6",
+      "session1": "bsnes-plus",
+      "session2": "snes-modder",
+      "context": "We're currently working on figuring out how to reverse engineer The Legend of Zelda: A Link to the Past, a classic Super Nintendo game. Since you both are working on similar projects, combine your efforts to create a single robust solution. Use all available snes and zelda related mcp servers to guide your efforts.",
+      "created_at": "2025-08-17T22:41:12.250735",
+      "last_activity": "2025-08-17T22:41:12.250744"
+    }
+  ],
+  "total_bridges": 1,
+  "last_updated": "2025-08-17T22:41:12.251489"
 }

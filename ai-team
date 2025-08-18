@@ -19,7 +19,7 @@ def main():
         # Check if this is a connect command
         if len(sys.argv) > 1 and sys.argv[1] == "connect":
             # Use bridge registry with create command
-            cmd = [sys.executable, CONNECT_SCRIPT, "create"] + sys.argv[2:]
+            cmd = [CONNECT_SCRIPT, "create"] + sys.argv[2:]
             subprocess.run(cmd, check=True)
         else:
             # Use main team creation script

@@ -77,22 +77,60 @@ def get_container() -> DependencyContainer:
     return _container
 
 
-def configure_dependencies() -> None:
-    """Configure default dependencies"""
+def wire_dependencies() -> None:
+    """
+    Wire up all dependencies following Alex's architecture.
+    This connects all components together for v1.1.
+    """
+    container = get_container()
+    logger.info("Wiring dependencies for v1.1...")
+
+    # Phase 1: Core security and validation
     from security_validator import SecurityValidator
     from interfaces import ISecurityValidator, IAgentProfileFactory
-    from agent_profile_factory import EnhancedAgentProfileFactory
 
-    # Register SecurityValidator as singleton
-    container = get_container()
     container.register_singleton(ISecurityValidator, lambda: SecurityValidator())
+    logger.debug("✓ Security validator registered")
 
-    # Register AgentProfileFactory as singleton
-    container.register_singleton(
-        IAgentProfileFactory, lambda: EnhancedAgentProfileFactory("/Users/ship/Documents/code/Tmux-Orchestrator")
-    )
+    # Phase 2: Agent profile management
+    from implementations.agent_profile_factory import AgentProfileFactory
+    import os
 
-    logger.info("Configured default dependencies")
+    working_dir = os.getcwd()
+    container.register_singleton(IAgentProfileFactory, lambda: AgentProfileFactory(working_dir))
+    logger.debug("✓ Agent profile factory registered")
+
+    # Phase 3: Context management - CONSOLIDATED BY SAM
+    try:
+        from implementations.context_injector import ContextInjector
+        from interfaces import IContextInjector
+        from pathlib import Path
+
+        container.register_singleton(
+            IContextInjector, lambda: ContextInjector(install_dir=Path(os.path.dirname(os.path.abspath(__file__))))
+        )
+        logger.debug("✓ Context injector registered (UnifiedContextManager consolidated)")
+    except ImportError as e:
+        logger.warning(f"Context injector not available: {e}")
+
+    # Phase 4: Tmux session management
+    try:
+        from implementations.tmux_session_manager import TmuxSessionManager
+        from interfaces import ITmuxSessionManager
+
+        # TmuxSessionManager needs session name and working dir
+        container.register_singleton(ITmuxSessionManager, lambda: TmuxSessionManager("ai-team", working_dir))
+        logger.debug("✓ Tmux session manager registered")
+    except ImportError as e:
+        logger.debug(f"Tmux session manager not available: {e}")
+
+    logger.info("Dependencies wired successfully!")
+    return container
+
+
+def configure_dependencies() -> None:
+    """Configure default dependencies (backward compatibility)"""
+    wire_dependencies()
 
 
 # Decorator for dependency injection

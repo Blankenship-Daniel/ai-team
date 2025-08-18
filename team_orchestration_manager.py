@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from logging_config import setup_logging
 from multi_team_coordinator import get_coordinator, TeamStatus
 from chaos_prevention import get_chaos_manager, chaos_protected
-from context_manager import get_context_manager
+from unified_context_manager import UnifiedContextManager
 
 logger = setup_logging(__name__)
 
@@ -39,7 +39,7 @@ class TeamOrchestrationManager:
         self.config = config or TeamOrchestrationConfig()
         self.coordinator = get_coordinator()
         self.chaos_manager = get_chaos_manager()
-        self.context_manager = get_context_manager()
+        self.context_manager = UnifiedContextManager()
 
         # Start coordination services
         self.coordinator.start_coordination_services()
