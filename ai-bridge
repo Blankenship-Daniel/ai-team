@@ -27,7 +27,7 @@ show_help() {
     echo "    send <target-team> \"<message>\"         Send message to team"
     echo "    list                                     List all active bridges"
     echo "    status <team>                           Show team's bridges"
-    echo "    cleanup [--dry-run]                     Clean up old bridges"
+    echo "    cleanup [--dry-run] [--complete]       Clean up coordination files"
     echo "    help                                    Show this help"
     echo ""
     echo "EXAMPLES:"
@@ -36,6 +36,7 @@ show_help() {
     echo "    ai-bridge list"
     echo "    ai-bridge status frontend"
     echo "    ai-bridge cleanup --dry-run"
+    echo "    ai-bridge cleanup --complete"
     echo ""
 }
 

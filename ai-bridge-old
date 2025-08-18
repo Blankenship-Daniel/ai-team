@@ -317,24 +317,136 @@ tmux send-keys -t "{session1}:0.0" "📨 New message from {session2}: $(printf '
         except Exception:
             print(f"   ⚠️  Could not notify {session2} (session may not exist)")
 
-    def cleanup_old_bridges(self, max_age_days: int = 7, dry_run: bool = False) -> Dict[str, Any]:
+    def cleanup_old_bridges(
+        self, max_age_days: int = 0, dry_run: bool = False, complete: bool = False
+    ) -> Dict[str, Any]:
         """Clean up old bridges and messages"""
         cutoff_time = datetime.now() - timedelta(days=max_age_days)
         cleanup_stats = {
             "bridges_removed": 0,
             "messages_removed": 0,
+            "sessions_removed": 0,
             "space_freed": 0,
             "errors": [],
         }
 
-        # Process each bridge file
-        for bridge_file in self.bridges_dir.glob("*.json"):
-            self._process_bridge_file(bridge_file, cutoff_time, cleanup_stats, dry_run)
+        if complete:
+            # Complete cleanup - remove all coordination files
+            self._complete_cleanup(cleanup_stats, dry_run)
+        else:
+            # Age-based cleanup - only remove old bridges
+            # Process each bridge file
+            for bridge_file in self.bridges_dir.glob("*.json"):
+                self._process_bridge_file(bridge_file, cutoff_time, cleanup_stats, dry_run)
 
         if not dry_run:
-            self._finalize_cleanup(cleanup_stats, max_age_days)
+            self._finalize_cleanup(cleanup_stats, max_age_days if not complete else "complete")
 
         return cleanup_stats
+
+    def _cleanup_all_bridge_files(self, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Remove all bridge files during complete cleanup"""
+        for bridge_file in self.bridges_dir.glob("*.json"):
+            if not dry_run:
+                try:
+                    space_freed = cleanup_stats["space_freed"]
+                    cleanup_stats["space_freed"] = space_freed + int(bridge_file.stat().st_size)
+                    bridge_file.unlink()
+                except Exception as e:
+                    cleanup_stats["errors"].append(f"Error removing bridge {bridge_file}: {e}")
+            cleanup_stats["bridges_removed"] += 1
+            print(f"🗑️  {'Would remove' if dry_run else 'Removed'} bridge: {bridge_file.name}")
+
+    def _cleanup_all_session_files(self, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Remove all session files during complete cleanup"""
+        for session_file in self.sessions_dir.glob("*.json"):
+            if not dry_run:
+                try:
+                    space_freed = cleanup_stats["space_freed"]
+                    cleanup_stats["space_freed"] = space_freed + int(session_file.stat().st_size)
+                    session_file.unlink()
+                except Exception as e:
+                    cleanup_stats["errors"].append(f"Error removing session {session_file}: {e}")
+            cleanup_stats["sessions_removed"] += 1
+            print(f"🗑️  {'Would remove' if dry_run else 'Removed'} session: {session_file.name}")
+
+    def _cleanup_message_directory(self, msg_dir: Path, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Clean up message files in a directory"""
+        for msg_file in msg_dir.glob("*.json"):
+            if not dry_run:
+                try:
+                    space_freed = cleanup_stats["space_freed"]
+                    cleanup_stats["space_freed"] = space_freed + int(msg_file.stat().st_size)
+                    msg_file.unlink()
+                except Exception as e:
+                    cleanup_stats["errors"].append(f"Error removing message {msg_file}: {e}")
+            cleanup_stats["messages_removed"] += 1
+            print(f"🗑️  {'Would remove' if dry_run else 'Removed'} message: {msg_file.name}")
+
+        # Remove the directory if empty or in complete cleanup
+        if not dry_run:
+            try:
+                msg_dir.rmdir()
+                print(f"🗑️  Removed message directory: {msg_dir.name}")
+            except OSError:
+                # Directory not empty or other error - that's ok
+                pass
+
+    def _cleanup_message_file(self, msg_file: Path, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Clean up a single message file"""
+        if not dry_run:
+            try:
+                space_freed = cleanup_stats["space_freed"]
+                cleanup_stats["space_freed"] = space_freed + int(msg_file.stat().st_size)
+                msg_file.unlink()
+            except Exception as e:
+                cleanup_stats["errors"].append(f"Error removing message {msg_file}: {e}")
+        cleanup_stats["messages_removed"] += 1
+        print(f"🗑️  {'Would remove' if dry_run else 'Removed'} message: {msg_file.name}")
+
+    def _cleanup_all_message_files(self, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Remove all message files and directories during complete cleanup"""
+        for msg_dir in self.messages_dir.iterdir():
+            if msg_dir.is_dir():
+                self._cleanup_message_directory(msg_dir, cleanup_stats, dry_run)
+            elif msg_dir.is_file() and msg_dir.suffix == ".json":
+                self._cleanup_message_file(msg_dir, cleanup_stats, dry_run)
+
+    def _cleanup_registry_files(self, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Remove registry and legacy files during complete cleanup"""
+        # Remove registry index files
+        registry_files = ["active-bridges.json"]
+        for registry_file in registry_files:
+            file_path = self.registry_dir / registry_file
+            if file_path.exists():
+                if not dry_run:
+                    try:
+                        space_freed = cleanup_stats["space_freed"]
+                        cleanup_stats["space_freed"] = space_freed + int(file_path.stat().st_size)
+                        file_path.unlink()
+                    except Exception as e:
+                        cleanup_stats["errors"].append(f"Error removing registry file {registry_file}: {e}")
+                print(f"🗑️  {'Would remove' if dry_run else 'Removed'} registry file: {registry_file}")
+
+        # Remove legacy bridge context file
+        legacy_context = self.coord_dir / "bridge_context.json"
+        if legacy_context.exists():
+            if not dry_run:
+                try:
+                    space_freed = cleanup_stats["space_freed"]
+                    cleanup_stats["space_freed"] = space_freed + int(legacy_context.stat().st_size)
+                    legacy_context.unlink()
+                except Exception as e:
+                    cleanup_stats["errors"].append(f"Error removing legacy context: {e}")
+            print(f"🗑️  {'Would remove' if dry_run else 'Removed'} legacy bridge_context.json")
+
+    def _complete_cleanup(self, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Perform complete cleanup of all coordination files"""
+        self._cleanup_all_bridge_files(cleanup_stats, dry_run)
+        self._cleanup_all_session_files(cleanup_stats, dry_run)
+        self._cleanup_all_message_files(cleanup_stats, dry_run)
+        self._cleanup_registry_files(cleanup_stats, dry_run)
+        self._cleanup_all_generated_scripts(cleanup_stats, dry_run)
 
     def _process_bridge_file(self, bridge_file, cutoff_time, cleanup_stats, dry_run):
         """Process a single bridge file for cleanup"""
@@ -454,6 +566,24 @@ Use 'ai-bridge list' to see remaining connections."""
             except Exception:
                 pass  # Session may not exist, which is fine
 
+    def _cleanup_all_generated_scripts(self, cleanup_stats: Dict[str, Any], dry_run: bool) -> None:
+        """Remove all generated send-to-peer scripts"""
+        script_pattern = "send-to-peer-*.sh"
+        import glob
+
+        scripts = glob.glob(script_pattern)
+        for script_path in scripts:
+            script_file = Path(script_path)
+            if script_file.exists():
+                if not dry_run:
+                    try:
+                        space_freed = cleanup_stats["space_freed"]
+                        cleanup_stats["space_freed"] = space_freed + int(script_file.stat().st_size)
+                        script_file.unlink()
+                    except Exception as e:
+                        cleanup_stats["errors"].append(f"Error removing script {script_path}: {e}")
+                print(f"🗑️  {'Would remove' if dry_run else 'Removed'} script: {script_path}")
+
 
 def show_help():
     """Display comprehensive CLI help with examples"""
@@ -466,7 +596,8 @@ USAGE:
 COMMANDS:
     create <session1> <session2> "<context>"     Create bridge between sessions
     list                                         List all active bridges
-    cleanup [--dry-run] [--max-age-days N]     Clean up old bridges (default: 7 days)
+    cleanup [--dry-run] [--complete|--all]     Clean up coordination files
+    cleanup [--dry-run] [--max-age-days N]     Clean up bridges older than N days
     status <session>                            Show bridges for a session
     help                                        Show this help
 
@@ -480,9 +611,9 @@ PRACTICAL EXAMPLES:
     # 🔍 Check what bridges a team has
     bridge_registry.py status mobile-team
 
-    # 🧹 Clean up old bridges (safe mode first!)
-    bridge_registry.py cleanup --dry-run --max-age-days 3
-    bridge_registry.py cleanup --max-age-days 3
+    # 🧹 Clean up bridges (safe mode first!)
+    bridge_registry.py cleanup --dry-run
+    bridge_registry.py cleanup
 
 COORDINATION WORKFLOW:
     1. 🔗 Create:    bridge_registry.py create team-a team-b "shared context"
@@ -530,20 +661,31 @@ def handle_list_command(registry: BridgeRegistry) -> None:
 def handle_cleanup_command(registry: BridgeRegistry) -> None:
     """Handle cleanup command"""
     dry_run = "--dry-run" in sys.argv
-    max_age = 7
+    complete = "--complete" in sys.argv or "--all" in sys.argv
+    max_age = 0  # Default to cleaning up all bridges
 
     if "--max-age-days" in sys.argv:
         idx = sys.argv.index("--max-age-days")
         if idx + 1 < len(sys.argv):
             max_age = int(sys.argv[idx + 1])
 
-    stats = registry.cleanup_old_bridges(max_age, dry_run)
-    print(f"🗑️  Cleanup {'(DRY RUN)' if dry_run else 'COMPLETED'}:")
+    # If complete cleanup is requested or no specific age is given, do complete cleanup
+    if complete or max_age == 0:
+        complete = True
+        cleanup_type = "COMPLETE" if not dry_run else "COMPLETE (DRY RUN)"
+    else:
+        cleanup_type = f"AGE-BASED {'(DRY RUN)' if dry_run else ''}"
+
+    stats = registry.cleanup_old_bridges(max_age, dry_run, complete)
+    print(f"🗑️  Cleanup {cleanup_type}:")
     print(f"   Bridges removed: {stats['bridges_removed']}")
+    print(f"   Sessions removed: {stats['sessions_removed']}")
     print(f"   Messages removed: {stats['messages_removed']}")
     print(f"   Space freed: {stats['space_freed']} bytes")
     if stats["errors"]:
         print(f"   Errors: {len(stats['errors'])}")
+        for error in stats["errors"]:
+            print(f"     - {error}")
 
 
 def handle_status_command(registry: BridgeRegistry) -> None:

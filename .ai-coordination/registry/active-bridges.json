@@ -1,22 +1,5 @@
 {
-  "active_bridges": [
-    {
-      "bridge_id": "bridge-31979d88272d",
-      "session1": "snes-modder",
-      "session2": "Tmux-Orchestrator",
-      "context": "Testing fixed context messaging",
-      "created_at": "2025-08-16T19:20:15.969489",
-      "last_activity": "2025-08-16T19:20:15.969497"
-    },
-    {
-      "bridge_id": "bridge-e846da75db92",
-      "session1": "ai-team",
-      "session2": "bsnes",
-      "context": "Testing context messaging",
-      "created_at": "2025-08-16T19:19:03.801367",
-      "last_activity": "2025-08-16T19:19:03.801375"
-    }
-  ],
-  "total_bridges": 2,
-  "last_updated": "2025-08-16T19:20:15.971313"
+  "active_bridges": [],
+  "total_bridges": 0,
+  "last_updated": "2025-08-17T21:42:52.948551"
 }

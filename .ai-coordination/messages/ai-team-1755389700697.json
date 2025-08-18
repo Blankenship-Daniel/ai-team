@@ -1,8 +1,0 @@
-{
-  "from_session": "ai-team",
-  "to_session": "snes-modder",
-  "message": "Test message from ai-team to snes-modder",
-  "timestamp": "2025-08-17T00:15:00.3NZ",
-  "message_id": "ai-team-1755389700697",
-  "bridge_id": "bridge-1290db9e880e"
-}
