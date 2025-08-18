@@ -4,13 +4,13 @@ Bridge Registry - Multi-bridge coordination management
 Supports multiple simultaneous bridges with cleanup
 """
 
-import json
-import subprocess
+# import json
+# import subprocess
 import sys
-import time
+# import time
 import uuid
-from datetime import datetime, timedelta
-from pathlib import Path
+# from datetime import datetime, timedelta
+# from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 
@@ -330,20 +330,82 @@ FILES CREATED:
     )
 
 
-def main():
-    """CLI interface for bridge registry"""
-    if len(sys.argv) < 2 or (len(sys.argv) >= 2 and sys.argv[1] in ["help", "--help", "-h"]):
+class BridgeRegistryArgumentParser:
+    """Handles CLI argument parsing for bridge registry commands"""
+    
+    def parse_args(self, args):
+        """Parse command line arguments into structured command data"""
+        if len(args) < 2 or args[1] in ["help", "--help", "-h"]:
+            return {"command": "help"}
+        
+        command = args[1]
+        
+        if command == "create" and len(args) >= 5:
+            return {
+                "command": "create",
+                "session1": args[2],
+                "session2": args[3], 
+                "context": " ".join(args[4:])
+            }
+        elif command == "list":
+            return {"command": "list"}
+        elif command == "cleanup":
+            dry_run = "--dry-run" in args
+            max_age = 7
+            if "--max-age-days" in args:
+                idx = args.index("--max-age-days")
+                if idx + 1 < len(args):
+                    max_age = int(args[idx + 1])
+            return {
+                "command": "cleanup",
+                "dry_run": dry_run,
+                "max_age": max_age
+            }
+        elif command == "status" and len(args) >= 3:
+            return {
+                "command": "status",
+                "session": args[2]
+            }
+        else:
+            return {
+                "command": "unknown",
+                "provided": command
+            }
+
+
+class BridgeRegistryCommandHandler:
+    """Handles execution of bridge registry commands"""
+    
+    def __init__(self, registry):
+        self.registry = registry
+    
+    def execute(self, command_data):
+        """Execute a parsed command and return result"""
+        command = command_data["command"]
+        
+        if command == "help":
+            return self._handle_help()
+        elif command == "create":
+            return self._handle_create(command_data)
+        elif command == "list":
+            return self._handle_list()
+        elif command == "cleanup":
+            return self._handle_cleanup(command_data)
+        elif command == "status":
+            return self._handle_status(command_data)
+        else:
+            return self._handle_unknown(command_data)
+    
+    def _handle_help(self):
         show_help()
-        sys.exit(0)
-
-    registry = BridgeRegistry()
-    command = sys.argv[1]
-
-    if command == "create" and len(sys.argv) >= 5:
-        bridge_id = registry.create_bridge(sys.argv[2], sys.argv[3], " ".join(sys.argv[4:]))
-
-    elif command == "list":
-        bridges = registry.list_bridges()
+        return {"exit_code": 0}
+    
+    def _handle_create(self, data):
+        bridge_id = self.registry.create_bridge(data["session1"], data["session2"], data["context"])
+        return {"exit_code": 0, "bridge_id": bridge_id}
+    
+    def _handle_list(self):
+        bridges = self.registry.list_bridges()
         print(f"📋 Active Bridges ({len(bridges)}):")
         for bridge in bridges:
             print(f"  🔗 {bridge['bridge_id']}")
@@ -351,36 +413,43 @@ def main():
             print(f"     Context: {bridge['context']}")
             print(f"     Created: {bridge['created_at']}")
             print()
-
-    elif command == "cleanup":
-        dry_run = "--dry-run" in sys.argv
-        max_age = 7
-
-        if "--max-age-days" in sys.argv:
-            idx = sys.argv.index("--max-age-days")
-            if idx + 1 < len(sys.argv):
-                max_age = int(sys.argv[idx + 1])
-
-        stats = registry.cleanup_old_bridges(max_age, dry_run)
-        print(f"🗑️  Cleanup {'(DRY RUN)' if dry_run else 'COMPLETED'}:")
+        return {"exit_code": 0}
+    
+    def _handle_cleanup(self, data):
+        stats = self.registry.cleanup_old_bridges(data["max_age"], data["dry_run"])
+        print(f"🗑️  Cleanup {'(DRY RUN)' if data['dry_run'] else 'COMPLETED'}:")
         print(f"   Bridges removed: {stats['bridges_removed']}")
         print(f"   Messages removed: {stats['messages_removed']}")
         print(f"   Space freed: {stats['space_freed']} bytes")
         if stats["errors"]:
             print(f"   Errors: {len(stats['errors'])}")
-
-    elif command == "status" and len(sys.argv) >= 3:
-        session = sys.argv[2]
-        peers = registry.find_peer_sessions(session)
+        return {"exit_code": 0}
+    
+    def _handle_status(self, data):
+        session = data["session"]
+        peers = self.registry.find_peer_sessions(session)
         print(f"📍 Session '{session}' bridges:")
         for peer, bridge_id in peers:
             print(f"   {session} ↔ {peer} (via {bridge_id})")
-
-    else:
-        print(f"❌ Unknown command: '{command}'")
+        return {"exit_code": 0}
+    
+    def _handle_unknown(self, data):
+        print(f"❌ Unknown command: '{data['provided']}'")
         print("\n💡 Try: bridge_registry.py help")
         print('🚀 Quick start: bridge_registry.py create team1 team2 "coordination context"')
-        sys.exit(1)
+        return {"exit_code": 1}
+
+
+def main():
+    """CLI entry point - now follows Command pattern with SRP"""
+    parser = BridgeRegistryArgumentParser()
+    command_data = parser.parse_args(sys.argv)
+    
+    registry = BridgeRegistry()
+    handler = BridgeRegistryCommandHandler(registry)
+    
+    result = handler.execute(command_data)
+    sys.exit(result.get("exit_code", 0))
 
 
 if __name__ == "__main__":

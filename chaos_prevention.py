@@ -4,10 +4,10 @@ Chaos Prevention Toolkit for Multi-Team AI Orchestration
 Implements circuit breakers, bulkheads, and fail-safe mechanisms
 """
 
-import time
+# import time
 import threading
-import json
-from datetime import datetime, timedelta
+# import json
+# from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -319,7 +319,7 @@ def setup_team_coordination_protection() -> ChaosPreventionManager:
 
     # Health checks
     def tmux_health_check() -> bool:
-        import subprocess
+        # import subprocess
 
         try:
             result = subprocess.run(["tmux", "list-sessions"], capture_output=True, timeout=5)

@@ -4,9 +4,9 @@ Automated Context Keeper - Run this as a daemon to maintain context health
 """
 
 import sys
-import time
+# import time
 import signal
-from datetime import datetime
+# from datetime import datetime
 from unified_context_manager import UnifiedContextManager
 from logging_config import setup_logging
 
