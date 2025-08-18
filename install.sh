@@ -96,7 +96,7 @@ fi
 
 # Verify all required files exist before installation
 echo -e "${BLUE}🔍 Verifying required files...${NC}"
-REQUIRED_FILES=("create_ai_team.py" "ai-bridge" "ai-bridge-old" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "send-claude-message.sh" "schedule_with_note.sh" "check-peer-messages.sh" "ai-team")
+REQUIRED_FILES=("create_ai_team.py" "ai-bridge" "ai-bridge-old" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "interfaces.py" "send-claude-message.sh" "schedule_with_note.sh" "check-peer-messages.sh" "ai-team")
 
 for file in "${REQUIRED_FILES[@]}"; do
     if [ ! -f "$SOURCE_DIR/$file" ]; then
@@ -140,6 +140,16 @@ echo -e "${GREEN}✓ Copied logging_config.py${NC}"
 
 cp "$SOURCE_DIR/unified_context_manager.py" "$INSTALL_DIR/"
 echo -e "${GREEN}✓ Copied unified_context_manager.py${NC}"
+
+# Copy implementations directory for v1.1 DI architecture
+if [ -d "$SOURCE_DIR/implementations" ]; then
+    cp -r "$SOURCE_DIR/implementations" "$INSTALL_DIR/"
+    echo -e "${GREEN}✓ Copied implementations/ directory (v1.1 DI architecture)${NC}"
+fi
+
+# Copy interfaces.py for Protocol definitions
+cp "$SOURCE_DIR/interfaces.py" "$INSTALL_DIR/"
+echo -e "${GREEN}✓ Copied interfaces.py${NC}"
 
 # Copy shell script utilities
 cp "$SOURCE_DIR/send-claude-message.sh" "$INSTALL_DIR/"
