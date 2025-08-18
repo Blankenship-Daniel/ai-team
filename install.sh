@@ -31,6 +31,7 @@ SKIP_DEPS=false
 # Comprehensive file lists (ALL dependencies mapped correctly)
 CORE_PYTHON_FILES=(
     "create_ai_team.py"
+    "create_test_coverage_team.py"  # Test coverage team implementation
     "tmux_utils.py"
     "security_validator.py"
     "logging_config.py"
@@ -42,6 +43,7 @@ CORE_PYTHON_FILES=(
 
 SHELL_SCRIPTS=(
     "ai-team"
+    "ai-test-coverage-team"  # Test coverage team command
     "ai-bridge"
     "ai-bridge-old"
     "send-claude-message.sh"
@@ -772,13 +774,21 @@ main() {
         echo "  • Directories: ${#DIRECTORIES[@]} directories"
         echo ""
         echo "What's created:"
+        echo "  AI Team (General Development):"
         echo "  • Orchestrator: Coordinates and mediates"
         echo "  • Alex: Perfectionist architect (quality-focused)"
         echo "  • Morgan: Pragmatic shipper (speed-focused)"
         echo "  • Sam: Code janitor (cleanup-focused)"
         echo ""
+        echo "  Test Coverage Team (100% Coverage Mission):"
+        echo "  • Coverage Mission Commander: Strategic coordination"
+        echo "  • TestAnalyzer: Gap analysis & risk assessment"
+        echo "  • TestWriter: Unit & integration test implementation"
+        echo "  • TestValidator: Quality enforcement & standards"
+        echo ""
         echo "Usage:"
-        echo -e "  ${BLUE}ai-team${NC}                    # Create default team"
+        echo -e "  ${BLUE}ai-team${NC}                    # Create default development team"
+        echo -e "  ${BLUE}ai-test-coverage-team${NC}      # Create test coverage team"
         echo -e "  ${BLUE}ai-team --help${NC}             # Show help"
         echo -e "  ${BLUE}ai-team --verify${NC}           # Verify installation"
         
