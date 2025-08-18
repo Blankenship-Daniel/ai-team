@@ -4,10 +4,11 @@ Chaos Prevention Toolkit for Multi-Team AI Orchestration
 Implements circuit breakers, bulkheads, and fail-safe mechanisms
 """
 
-# import time
+import time
 import threading
-# import json
-# from datetime import datetime, timedelta
+import json
+import subprocess
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
 from enum import Enum

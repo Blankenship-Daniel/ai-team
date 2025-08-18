@@ -1,0 +1,62 @@
+{
+  "session1": {
+    "resource_id": "session1",
+    "resource_type": "tmux_session",
+    "owner_team": "team1",
+    "reserved_at": "2025-08-18T02:46:29.928810",
+    "expires_at": "2025-08-18T02:46:29.928806",
+    "metadata": {
+      "core_resource": true
+    }
+  },
+  "context_team1": {
+    "resource_id": "context_team1",
+    "resource_type": "context_namespace",
+    "owner_team": "team1",
+    "reserved_at": "2025-08-18T02:46:29.929665",
+    "expires_at": "2025-08-18T02:46:29.929662",
+    "metadata": {
+      "core_resource": true
+    }
+  },
+  "session2": {
+    "resource_id": "session2",
+    "resource_type": "tmux_session",
+    "owner_team": "team2",
+    "reserved_at": "2025-08-18T02:46:29.938569",
+    "expires_at": "2025-08-18T02:46:29.938565",
+    "metadata": {
+      "core_resource": true
+    }
+  },
+  "context_team2": {
+    "resource_id": "context_team2",
+    "resource_type": "context_namespace",
+    "owner_team": "team2",
+    "reserved_at": "2025-08-18T02:46:29.939912",
+    "expires_at": "2025-08-18T02:46:29.939908",
+    "metadata": {
+      "core_resource": true
+    }
+  },
+  "dev-session": {
+    "resource_id": "dev-session",
+    "resource_type": "tmux_session",
+    "owner_team": "dev-team",
+    "reserved_at": "2025-08-18T02:46:29.952161",
+    "expires_at": "2025-08-18T02:46:29.952156",
+    "metadata": {
+      "core_resource": true
+    }
+  },
+  "context_dev-team": {
+    "resource_id": "context_dev-team",
+    "resource_type": "context_namespace",
+    "owner_team": "dev-team",
+    "reserved_at": "2025-08-18T02:46:29.953062",
+    "expires_at": "2025-08-18T02:46:29.953059",
+    "metadata": {
+      "core_resource": true
+    }
+  }
+}

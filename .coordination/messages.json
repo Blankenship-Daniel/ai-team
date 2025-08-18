@@ -1,0 +1,14 @@
+[
+  {
+    "message_id": "a49c8298-e78b-4de0-8747-ce1a3ee66e68",
+    "from_team": "team1",
+    "to_team": "team2",
+    "message_type": "sync_request",
+    "payload": {
+      "data": "test"
+    },
+    "timestamp": "2025-08-18T02:46:29.947496",
+    "requires_ack": false,
+    "ack_received": false
+  }
+]

@@ -1,8 +1,8 @@
 # Agent Status: Morgan-Pragmatist
 
 ## Current Status
-- **Created**: 2025-08-17T21:52:42.680356
-- **Working Directory**: /Users/ship/Documents/code/Tmux-Orchestrator
+- **Created**: 2025-08-18T02:24:25.312455
+- **Working Directory**: /Users/d0b01r1/Documents/code/ai-team
 - **Context Version**: 2.0
 
 ## Tasks

@@ -250,7 +250,7 @@ tmux capture-pane -t Tmux-Orchestrator:0.1 -p | tail -5
 
 # Restart agent if needed
 tmux send-keys -t Tmux-Orchestrator:0.1 C-c  # Stop current process
-tmux send-keys -t Tmux-Orchestrator:0.1 "claude --dangerously-skip-permissions" Enter
+tmux send-keys -t Tmux-Orchestrator:0.1 "claude --permission-mode bypassPermissions" Enter
 ```
 
 #### Bridge Communication Failures

@@ -1,0 +1,55 @@
+{
+  "team1": {
+    "team_id": "team1",
+    "session_name": "session1",
+    "created_at": "2025-08-18T02:46:29.928797",
+    "last_heartbeat": "2025-08-18T02:46:29.928800",
+    "status": "healthy",
+    "agents": [
+      "agent1"
+    ],
+    "resources": [
+      "session1",
+      "context_team1"
+    ],
+    "context_checkpoints": [],
+    "error_count": 0,
+    "isolation_reason": null
+  },
+  "team2": {
+    "team_id": "team2",
+    "session_name": "session2",
+    "created_at": "2025-08-18T02:46:29.938555",
+    "last_heartbeat": "2025-08-18T02:46:29.938559",
+    "status": "healthy",
+    "agents": [
+      "agent2"
+    ],
+    "resources": [
+      "session2",
+      "context_team2"
+    ],
+    "context_checkpoints": [],
+    "error_count": 0,
+    "isolation_reason": null
+  },
+  "dev-team": {
+    "team_id": "dev-team",
+    "session_name": "dev-session",
+    "created_at": "2025-08-18T02:46:29.952146",
+    "last_heartbeat": "2025-08-18T02:46:29.952150",
+    "status": "healthy",
+    "agents": [
+      "frontend",
+      "backend",
+      "database"
+    ],
+    "resources": [
+      "context_dev-team",
+      "dev-session"
+    ],
+    "context_checkpoints": [],
+    "error_count": 0,
+    "isolation_reason": null
+  }
+}

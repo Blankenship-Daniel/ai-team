@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-18T02:45:01.423380",
+  "total_teams": 0,
+  "healthy_teams": 0,
+  "degraded_teams": 0,
+  "failing_teams": 0,
+  "isolated_teams": 0,
+  "resource_conflicts": 0,
+  "stale_heartbeats": 0,
+  "teams": {}
+}

@@ -4,13 +4,13 @@ Bridge Registry - Multi-bridge coordination management
 Supports multiple simultaneous bridges with cleanup
 """
 
-# import json
-# import subprocess
+import json
+import subprocess
 import sys
-# import time
+import time
 import uuid
-# from datetime import datetime, timedelta
-# from pathlib import Path
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 
