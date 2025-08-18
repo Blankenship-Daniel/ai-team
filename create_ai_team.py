@@ -33,7 +33,7 @@ class AgentProfile:
 
 
 class AITeamOrchestrator:
-    def __init__(self, non_interactive=False, observe_only=False):
+    def __init__(self, non_interactive=False, observe_only=False, no_git_write=False):
         self.tmux = TmuxOrchestrator()
         self.session_name = "ai-team"
         self.agents: List[AgentProfile] = []
@@ -42,6 +42,7 @@ class AITeamOrchestrator:
         self.context_manager = UnifiedContextManager(install_dir=Path(self.script_dir))
         self.non_interactive = non_interactive
         self.observe_only = observe_only
+        self.no_git_write = no_git_write
         logger.info(
             "AITeamOrchestrator initialized",
             extra={
@@ -304,12 +305,8 @@ WORKING CONTEXT:
                     continue
 
                 # Start Claude in the pane with appropriate flags
-                if self.observe_only:
-                    # In observe-only mode, start Claude without auto-permissions
-                    cmd = ["tmux", "send-keys", "-t", pane_target, "claude", "Enter"]
-                else:
-                    # Normal mode: start with --dangerously-skip-permissions for auto-work
-                    cmd = ["tmux", "send-keys", "-t", pane_target, "claude --dangerously-skip-permissions", "Enter"]
+                # IMPORTANT: Use --permission-mode bypassPermissions to prevent agents getting stuck on prompts
+                cmd = ["tmux", "send-keys", "-t", pane_target, "claude --permission-mode bypassPermissions", "Enter"]
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 log_subprocess_call(logger, cmd, result)
 
@@ -378,6 +375,19 @@ WORKING CONTEXT:
                         "- You may familiarize yourself with the workspace but don't make changes"
                     )
                     briefing_to_use = agent.briefing + observe_instruction
+
+                # Add no-git-write restriction if flag is set
+                if self.no_git_write:
+                    git_restriction = (
+                        "\n\n🚫 GIT WRITE OPERATIONS DISABLED:\n"
+                        "- You are PROHIBITED from performing ANY git write operations\n"
+                        "- FORBIDDEN commands include: git add, git commit, git push, git merge, git rebase, git reset, git checkout -b, git branch, git tag, git pull (with merge), git cherry-pick, git stash push, git stash pop\n"
+                        "- You MAY ONLY use read-only git commands like: git status, git diff, git log, git show, git blame, git branch -l, git remote -v, git config -l\n"
+                        "- If you need to suggest changes, describe them in text but DO NOT execute any git write commands\n"
+                        "- If asked to commit changes, politely explain that git write operations are disabled\n"
+                        "- You can create and modify files normally, just no git commits or similar operations"
+                    )
+                    briefing_to_use = briefing_to_use + git_restriction
 
                 enhanced_briefing = self.context_manager.inject_context_into_briefing(
                     briefing_to_use, agent.role.lower().replace(" ", "_")
@@ -491,14 +501,26 @@ Start by introducing yourself to all three agents and asking them to introduce t
 - This prevents agents from immediately diving into random tasks
 - You should coordinate what work needs to be done before agents begin"""
 
-            # Start Claude in orchestrator pane with --dangerously-skip-permissions
+            # Add no-git-write instructions to orchestrator if flag is set
+            if self.no_git_write:
+                orchestrator_briefing += """
+
+🚫 GIT WRITE OPERATIONS DISABLED FOR ALL AGENTS:
+- All agents (Alex, Morgan, Sam) have been instructed to avoid git write operations
+- They cannot use: git add, git commit, git push, git merge, git rebase, git reset, etc.
+- They can only use read-only git commands: git status, git diff, git log, git show, etc.
+- Agents can modify files but will not commit changes to git
+- If you need commits, you'll need to handle them manually outside the AI team session
+- Coordinate with agents to understand what changes they've made for manual commits"""
+
+            # Start Claude in orchestrator pane with --permission-mode bypassPermissions
             subprocess.run(
                 [
                     "tmux",
                     "send-keys",
                     "-t",
                     f"{self.session_name}:0.0",
-                    "claude --dangerously-skip-permissions",
+                    "claude --permission-mode bypassPermissions",
                     "Enter",
                 ],
                 check=True,
@@ -633,16 +655,22 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 create_ai_team.py                    # Create default team
-  python3 create_ai_team.py --session my-team  # Create with custom session name
-  python3 create_ai_team.py --yes              # Non-interactive mode (fast)
+  python3 create_ai_team.py                      # Create default team
+  python3 create_ai_team.py --session my-team    # Create with custom session name
+  python3 create_ai_team.py --yes                # Non-interactive mode (fast)
+  python3 create_ai_team.py --no-git-write       # Prevent agents from making git commits
+  python3 create_ai_team.py -o -n                # Observe-only + no git writes (safest mode)
 
 This creates:
 - 1 Orchestrator (coordinates and mediates)
 - Alex: Perfectionist architect (quality-focused)
 - Morgan: Pragmatic shipper (speed-focused)
 - Sam: Code janitor (cleanup-focused)
-        """,
+
+Flags:
+--no-git-write/-n: Prevents all agents from performing git write operations
+                   (commits, adds, pushes, merges, etc.) for safety
+        """
     )
 
     parser.add_argument(
@@ -660,6 +688,13 @@ This creates:
         help="Agents introduce themselves and wait for instructions (no auto-work)",
     )
 
+    parser.add_argument(
+        "--no-git-write",
+        "-n",
+        action="store_true",
+        help="Prevent agents from performing any git write operations (commits, adds, pushes, etc.)",
+    )
+
     args = parser.parse_args()
 
     # Validate session name from args
@@ -670,7 +705,11 @@ This creates:
         sys.exit(1)
 
     # Create the team
-    orchestrator = AITeamOrchestrator(non_interactive=args.yes, observe_only=args.observe_only)
+    orchestrator = AITeamOrchestrator(
+        non_interactive=args.yes, 
+        observe_only=args.observe_only,
+        no_git_write=args.no_git_write
+    )
     orchestrator.session_name = args.session
 
     try:

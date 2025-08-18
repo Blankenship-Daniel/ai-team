@@ -14,8 +14,9 @@ WINDOW="$1"
 shift  # Remove first argument, rest is the message
 MESSAGE="$*"
 
-# Send the message
-tmux send-keys -t "$WINDOW" "$MESSAGE"
+# Send the message with proper shell escaping
+# Use -l flag for literal input to avoid shell interpretation
+tmux send-keys -t "$WINDOW" -l "$MESSAGE"
 
 # Wait 1 second for prompt to be fully typed before submitting
 sleep 1

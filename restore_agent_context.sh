@@ -30,6 +30,13 @@ EOF
 chmod +x send-claude-message.sh
 ```
 
+### Starting Claude (CRITICAL)
+If you need to start a new Claude session:
+```bash
+# ALWAYS use --permission-mode bypassPermissions to prevent getting stuck on prompts
+claude --permission-mode bypassPermissions
+```
+
 ### Git Discipline (MANDATORY)
 1. **Commit every 30 minutes**: `git add -A && git commit -m "Progress: [what you did]"`
 2. **Before task switches**: ALWAYS commit

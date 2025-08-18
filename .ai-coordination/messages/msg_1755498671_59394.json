@@ -1,0 +1,8 @@
+{
+  "id": "msg_1755498671_59394",
+  "from_session": "ai-team",
+  "to_session": "ai-team-2",
+  "message": "Test message to verify bridge functionality is working",
+  "timestamp": "2025-08-18T06:31:11Z",
+  "type": "peer_message"
+}

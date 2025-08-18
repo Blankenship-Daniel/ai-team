@@ -64,7 +64,7 @@ ai-team --help             # Show help
 - **Claude CLI**: AI agents (install via Claude's official CLI)
 - **Python 3**: Runtime environment
 
-> **Note**: All Claude instances are started with `--dangerously-skip-permissions` for seamless operation.
+> **Note**: All Claude instances are started with `--permission-mode bypassPermissions` for seamless operation.
 
 ## 📖 Detailed Usage
 

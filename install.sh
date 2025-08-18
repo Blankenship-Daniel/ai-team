@@ -1,5 +1,6 @@
 #!/bin/bash
-# AI Team CLI Global Installation Script
+# AI Team CLI Enhanced Installation Script
+# Completely removes any existing installation and reinstalls with all dependencies
 
 set -e
 
@@ -8,271 +9,795 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="$HOME/.local/bin"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMAND_NAME="ai-team"
+BACKUP_DIR="$HOME/.ai-team-backup"
+LOG_FILE="$HOME/.ai-team-install.log"
+MANIFEST_FILE="$INSTALL_DIR/.ai-team-manifest.json"
 
-echo -e "${BLUE}🚀 AI Team CLI Global Installation${NC}"
-echo "================================================"
+# Flags
+DRY_RUN=false
+VERIFY_ONLY=false
+UNINSTALL_ONLY=false
+VERBOSE=false
+SKIP_DEPS=false
 
-# Check if tmux is available
-if ! command -v tmux &> /dev/null; then
-    echo -e "${RED}❌ Error: tmux is not installed${NC}"
-    echo "Please install tmux first:"
-    echo "  macOS: brew install tmux"
-    echo "  Ubuntu/Debian: sudo apt install tmux"
-    echo "  CentOS/RHEL: sudo yum install tmux"
-    exit 1
-fi
+# Comprehensive file lists (ALL dependencies mapped correctly)
+CORE_PYTHON_FILES=(
+    "create_ai_team.py"
+    "tmux_utils.py"
+    "security_validator.py"
+    "logging_config.py"
+    "unified_context_manager.py" 
+    "interfaces.py"
+    "context_registry.py"  # This was the missing dependency!
+    "bridge_registry.py"   # Required for ai-bridge send-to-peer functionality
+)
 
-# Check if Claude CLI is available
-if ! command -v claude &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Warning: 'claude' command not found${NC}"
-    echo "Make sure Claude CLI is installed and available in PATH"
-    echo "The AI team will not work without it."
-    echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+SHELL_SCRIPTS=(
+    "ai-team"
+    "ai-bridge"
+    "ai-bridge-old"
+    "send-claude-message.sh"
+    "send-to-peer.sh"
+    "schedule_with_note.sh"
+    "check-peer-messages.sh"
+    "context-status.sh"
+)
+
+DIRECTORIES=(
+    "implementations"
+)
+
+DOCUMENTATION=(
+    "ORCHESTRATOR_GUIDE.md"
+)
+
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --verify)
+                VERIFY_ONLY=true
+                shift
+                ;;
+            --uninstall)
+                UNINSTALL_ONLY=true
+                shift
+                ;;
+            --verbose|-v)
+                VERBOSE=true
+                shift
+                ;;
+            --skip-deps)
+                SKIP_DEPS=true
+                shift
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}❌ Unknown option: $1${NC}"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+show_help() {
+    cat << EOF
+AI Team CLI Enhanced Installation Script
+
+Usage: $0 [options]
+
+Options:
+    --dry-run      Show what would be done without making changes
+    --verify       Test existing installation without modifying
+    --uninstall    Remove existing installation only (no reinstall)
+    --verbose, -v  Enable detailed logging output
+    --skip-deps    Skip system dependency checks (tmux, claude, jq)
+    --help, -h     Show this help message
+
+Examples:
+    $0                    # Full install (removes existing first)
+    $0 --dry-run          # Preview what would be installed
+    $0 --verify           # Test current installation
+    $0 --uninstall        # Remove installation only
+    $0 --verbose          # Detailed output
+
+EOF
+}
+
+# Logging functions
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): $*" >> "$LOG_FILE"
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo -e "${CYAN}[LOG]${NC} $*"
     fi
-else
-    echo -e "${GREEN}✓ Claude CLI found${NC}"
-    echo -e "${BLUE}ℹ️  Note: All Claude instances will start with --dangerously-skip-permissions${NC}"
-fi
+}
 
-# Check if jq is available (required for bridge messaging)
-if ! command -v jq &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Warning: 'jq' command not found${NC}"
-    echo "Bridge messaging requires jq for JSON processing"
-    echo "Install: brew install jq (macOS) or apt install jq (Ubuntu)"
-    echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+error() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): ERROR: $*" >> "$LOG_FILE"
+    echo -e "${RED}❌ ERROR: $*${NC}"
+}
+
+warning() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): WARNING: $*" >> "$LOG_FILE"
+    echo -e "${YELLOW}⚠️  WARNING: $*${NC}"
+}
+
+success() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): SUCCESS: $*" >> "$LOG_FILE"
+    echo -e "${GREEN}✓ $*${NC}"
+}
+
+info() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): INFO: $*" >> "$LOG_FILE"
+    echo -e "${BLUE}ℹ️  $*${NC}"
+}
+
+progress() {
+    echo -e "${PURPLE}🔄 $*${NC}"
+}
+
+# Trap handler for cleanup on interruption
+cleanup_on_exit() {
+    if [[ $? -ne 0 ]]; then
+        error "Installation interrupted or failed"
+        if [[ -f "$BACKUP_DIR/.ai-team-backup.tar.gz" ]]; then
+            warning "Backup available at: $BACKUP_DIR/.ai-team-backup.tar.gz"
+            echo -e "${YELLOW}To restore: tar -xzf $BACKUP_DIR/.ai-team-backup.tar.gz -C $INSTALL_DIR${NC}"
+        fi
     fi
-else
-    echo -e "${GREEN}✓ jq found${NC}"
-fi
+}
 
-# Create install directory if it doesn't exist
-if [ ! -d "$INSTALL_DIR" ]; then
-    echo -e "${BLUE}📁 Creating install directory: $INSTALL_DIR${NC}"
-    mkdir -p "$INSTALL_DIR"
-fi
+trap cleanup_on_exit EXIT
 
-# Check if install directory is in PATH
-if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    echo -e "${YELLOW}⚠️  $INSTALL_DIR is not in your PATH${NC}"
-    echo "Adding to shell configuration..."
+# System dependency checks
+check_system_dependencies() {
+    if [[ "$SKIP_DEPS" == "true" ]]; then
+        info "Skipping system dependency checks"
+        return 0
+    fi
 
-    # Detect shell and add to appropriate config file
-    SHELL_CONFIG=""
-    if [[ "$SHELL" == *"zsh"* ]]; then
-        SHELL_CONFIG="$HOME/.zshrc"
-    elif [[ "$SHELL" == *"bash"* ]]; then
-        if [[ -f "$HOME/.bashrc" ]]; then
-            SHELL_CONFIG="$HOME/.bashrc"
+    progress "Checking system dependencies..."
+    
+    local missing_deps=()
+
+    # Check tmux
+    if ! command -v tmux &> /dev/null; then
+        missing_deps+=("tmux")
+    else
+        success "tmux found: $(tmux -V)"
+    fi
+
+    # Check Python 3
+    if ! command -v python3 &> /dev/null; then
+        missing_deps+=("python3")
+    else
+        success "Python found: $(python3 --version)"
+    fi
+
+    # Check jq (required for bridge messaging)
+    if ! command -v jq &> /dev/null; then
+        warning "jq not found - bridge messaging may not work"
+        echo "Install: brew install jq (macOS) or apt install jq (Ubuntu)"
+    else
+        success "jq found: $(jq --version)"
+    fi
+
+    # Check Claude CLI (optional but recommended)
+    if ! command -v claude &> /dev/null; then
+        warning "Claude CLI not found - AI agents won't work without it"
+        echo "The AI team requires Claude CLI to function"
+    else
+        success "Claude CLI found"
+        info "Note: All Claude instances will start with --dangerously-skip-permissions"
+    fi
+
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        error "Missing required dependencies: ${missing_deps[*]}"
+        echo "Please install missing dependencies and try again:"
+        echo "  macOS: brew install ${missing_deps[*]}"
+        echo "  Ubuntu/Debian: sudo apt install ${missing_deps[*]}"
+        echo "  CentOS/RHEL: sudo yum install ${missing_deps[*]}"
+        return 1
+    fi
+
+    return 0
+}
+
+# Validate source files exist
+validate_source_files() {
+    progress "Validating source files..."
+    local missing_files=()
+
+    # Check core Python files
+    for file in "${CORE_PYTHON_FILES[@]}"; do
+        if [[ ! -f "$SOURCE_DIR/$file" ]]; then
+            missing_files+=("$file")
+        fi
+    done
+
+    # Check shell scripts  
+    for file in "${SHELL_SCRIPTS[@]}"; do
+        if [[ ! -f "$SOURCE_DIR/$file" ]]; then
+            missing_files+=("$file")
+        fi
+    done
+
+    # Check directories
+    for dir in "${DIRECTORIES[@]}"; do
+        if [[ ! -d "$SOURCE_DIR/$dir" ]]; then
+            missing_files+=("$dir/")
+        fi
+    done
+
+    # Check documentation (non-critical)
+    for file in "${DOCUMENTATION[@]}"; do
+        if [[ ! -f "$SOURCE_DIR/$file" ]]; then
+            warning "Optional file missing: $file"
+        fi
+    done
+
+    if [[ ${#missing_files[@]} -gt 0 ]]; then
+        error "Missing required source files in $SOURCE_DIR:"
+        for file in "${missing_files[@]}"; do
+            echo "  • $file"
+        done
+        return 1
+    fi
+
+    success "All required source files found"
+    return 0
+}
+
+# Test Python module imports
+test_python_imports() {
+    progress "Testing Python module dependencies..."
+    
+    # Create a temporary test script
+    local test_script=$(mktemp)
+    cat > "$test_script" << 'EOF'
+#!/usr/bin/env python3
+import sys
+import tempfile
+import os
+
+# Add current directory to path for testing
+sys.path.insert(0, os.getcwd())
+
+modules_to_test = [
+    'logging_config',
+    'security_validator', 
+    'context_registry',
+    'bridge_registry',
+    'interfaces',
+    'unified_context_manager',
+    'tmux_utils',
+]
+
+failed_imports = []
+
+for module in modules_to_test:
+    try:
+        __import__(module)
+        print(f"✓ {module}")
+    except ImportError as e:
+        print(f"✗ {module}: {e}")
+        failed_imports.append(module)
+    except Exception as e:
+        print(f"? {module}: {e}")
+
+if failed_imports:
+    print(f"\nFailed to import: {', '.join(failed_imports)}")
+    sys.exit(1)
+else:
+    print("\nAll imports successful!")
+    sys.exit(0)
+EOF
+
+    chmod +x "$test_script"
+    
+    if (cd "$SOURCE_DIR" && python3 "$test_script"); then
+        success "Python module dependencies verified"
+        rm -f "$test_script"
+        return 0
+    else
+        error "Python import test failed"
+        rm -f "$test_script"
+        return 1
+    fi
+}
+
+# Create backup of existing installation
+create_backup() {
+    if [[ ! -d "$INSTALL_DIR" ]]; then
+        info "No existing installation to backup"
+        return 0
+    fi
+
+    progress "Creating backup of existing installation..."
+    
+    # Create backup directory
+    mkdir -p "$BACKUP_DIR"
+    
+    # Create timestamped backup
+    local backup_name="ai-team-backup-$(date +%Y%m%d-%H%M%S)"
+    local backup_path="$BACKUP_DIR/$backup_name.tar.gz"
+    
+    # Find all ai-team related files
+    local ai_files=()
+    while IFS= read -r -d '' file; do
+        ai_files+=("$file")
+    done < <(find "$INSTALL_DIR" -name "*ai-team*" -o -name "*ai-bridge*" -o -name "tmux_utils.py" -o -name "context_registry.py" -o -name "unified_context_manager.py" -o -name "logging_config.py" -o -name "security_validator.py" -o -name "interfaces.py" -o -name "create_ai_team.py" -print0 2>/dev/null || true)
+
+    if [[ ${#ai_files[@]} -gt 0 ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo -e "${CYAN}[DRY-RUN]${NC} Would backup ${#ai_files[@]} files to: $backup_path"
+            return 0
+        fi
+
+        # Create backup archive (BSD tar compatible)
+        # Create a temporary directory for the backup structure
+        local temp_backup_dir=$(mktemp -d)
+        mkdir -p "$temp_backup_dir/ai-team-installation"
+        
+        # Copy files to the structured directory
+        for file in "${ai_files[@]}"; do
+            local relative_path="${file##$INSTALL_DIR/}"
+            local dest_dir="$temp_backup_dir/ai-team-installation/$(dirname "$relative_path")"
+            mkdir -p "$dest_dir" 2>/dev/null || true
+            cp "$file" "$temp_backup_dir/ai-team-installation/$relative_path" 2>/dev/null || true
+        done
+        
+        # Create the archive from the structured directory
+        (cd "$temp_backup_dir" && tar -czf "$backup_path" ai-team-installation/ 2>/dev/null || true)
+        
+        # Clean up temporary directory
+        rm -rf "$temp_backup_dir" 2>/dev/null || true
+        
+        if [[ -f "$backup_path" ]]; then
+            success "Backup created: $backup_path"
+            log "Backup contains: ${ai_files[*]}"
         else
-            SHELL_CONFIG="$HOME/.bash_profile"
+            warning "Could not create backup (non-critical)"
         fi
     else
-        echo -e "${YELLOW}⚠️  Unknown shell: $SHELL${NC}"
+        info "No existing ai-team files found to backup"
+    fi
+}
+
+# Remove existing installation completely
+uninstall_existing() {
+    progress "Removing existing ai-team installation..."
+    
+    local removed_files=()
+    local files_to_remove=(
+        # Core files from our lists
+        "${CORE_PYTHON_FILES[@]}"
+        "${SHELL_SCRIPTS[@]}"
+        "${DOCUMENTATION[@]}"
+        # Additional cleanup
+        ".ai-team-manifest.json"
+    )
+    
+    # Remove individual files
+    for file in "${files_to_remove[@]}"; do
+        local target="$INSTALL_DIR/$file"
+        if [[ -f "$target" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo -e "${CYAN}[DRY-RUN]${NC} Would remove: $target"
+            else
+                rm -f "$target"
+                removed_files+=("$file")
+                log "Removed file: $target"
+            fi
+        fi
+    done
+
+    # Remove directories
+    for dir in "${DIRECTORIES[@]}"; do
+        local target="$INSTALL_DIR/$dir"
+        if [[ -d "$target" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo -e "${CYAN}[DRY-RUN]${NC} Would remove directory: $target"
+            else
+                rm -rf "$target"
+                removed_files+=("$dir/")
+                log "Removed directory: $target"
+            fi
+        fi
+    done
+
+    # Clean up coordination files
+    local coord_dir="$HOME/.ai-coordination"
+    if [[ -d "$coord_dir" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo -e "${CYAN}[DRY-RUN]${NC} Would clean coordination files in: $coord_dir"
+        else
+            # Only remove generated files, keep user data
+            find "$coord_dir" -name "*.pid" -delete 2>/dev/null || true
+            find "$coord_dir" -name "active-bridges.json" -delete 2>/dev/null || true
+            info "Cleaned coordination files"
+        fi
+    fi
+
+    if [[ ${#removed_files[@]} -gt 0 ]]; then
+        success "Removed ${#removed_files[@]} files/directories"
+    else
+        info "No existing installation found to remove"
+    fi
+}
+
+# Install files with verification
+install_files() {
+    progress "Installing AI Team CLI files..."
+    
+    # Create install directory
+    if [[ "$DRY_RUN" == "false" ]]; then
+        mkdir -p "$INSTALL_DIR"
+    fi
+
+    local installed_files=()
+    local checksums=()
+
+    # Install Python files
+    for file in "${CORE_PYTHON_FILES[@]}"; do
+        local src="$SOURCE_DIR/$file"
+        local dest="$INSTALL_DIR/$file"
+        
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo -e "${CYAN}[DRY-RUN]${NC} Would copy: $file"
+        else
+            cp "$src" "$dest"
+            chmod 644 "$dest"
+            installed_files+=("$file")
+            if command -v sha256sum &> /dev/null; then
+                checksums+=("$file:$(sha256sum "$dest" | cut -d' ' -f1)")
+            fi
+            log "Installed Python file: $file"
+        fi
+    done
+
+    # Install shell scripts
+    for file in "${SHELL_SCRIPTS[@]}"; do
+        local src="$SOURCE_DIR/$file"
+        local dest="$INSTALL_DIR/$file"
+        
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo -e "${CYAN}[DRY-RUN]${NC} Would copy: $file (executable)"
+        else
+            cp "$src" "$dest"
+            chmod +x "$dest"
+            installed_files+=("$file")
+            if command -v sha256sum &> /dev/null; then
+                checksums+=("$file:$(sha256sum "$dest" | cut -d' ' -f1)")
+            fi
+            log "Installed shell script: $file"
+        fi
+    done
+
+    # Install directories
+    for dir in "${DIRECTORIES[@]}"; do
+        local src="$SOURCE_DIR/$dir"
+        local dest="$INSTALL_DIR/$dir"
+        
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo -e "${CYAN}[DRY-RUN]${NC} Would copy directory: $dir"
+        else
+            cp -r "$src" "$dest"
+            find "$dest" -name "*.py" -exec chmod 644 {} \;
+            find "$dest" -name "*.sh" -exec chmod +x {} \;
+            installed_files+=("$dir/")
+            log "Installed directory: $dir"
+        fi
+    done
+
+    # Install documentation
+    for file in "${DOCUMENTATION[@]}"; do
+        local src="$SOURCE_DIR/$file"
+        local dest="$INSTALL_DIR/$file"
+        
+        if [[ -f "$src" ]]; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo -e "${CYAN}[DRY-RUN]${NC} Would copy: $file"
+            else
+                cp "$src" "$dest"
+                chmod 644 "$dest"
+                installed_files+=("$file")
+                log "Installed documentation: $file"
+            fi
+        fi
+    done
+
+    if [[ "$DRY_RUN" == "false" ]] && command -v jq &> /dev/null; then
+        # Create installation manifest
+        cat > "$MANIFEST_FILE" << EOF
+{
+    "version": "1.1.0",
+    "install_date": "$(date -Iseconds)",
+    "source_dir": "$SOURCE_DIR",
+    "files": [$(printf '"%s",' "${installed_files[@]}" | sed 's/,$//')],
+    "checksums": [$(printf '"%s",' "${checksums[@]}" | sed 's/,$//')],
+    "python_version": "$(python3 --version)",
+    "installer_version": "2.0"
+}
+EOF
+        success "Installation manifest created"
+    fi
+
+    success "Installed ${#installed_files[@]} files"
+}
+
+# Setup PATH if needed
+setup_path() {
+    if [[ ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
+        success "$INSTALL_DIR already in PATH"
+        return 0
+    fi
+
+    progress "Setting up PATH configuration..."
+    
+    local shell_config=""
+    if [[ "$SHELL" == *"zsh"* ]]; then
+        shell_config="$HOME/.zshrc"
+    elif [[ "$SHELL" == *"bash"* ]]; then
+        if [[ -f "$HOME/.bashrc" ]]; then
+            shell_config="$HOME/.bashrc"
+        else
+            shell_config="$HOME/.bash_profile"
+        fi
+    else
+        warning "Unknown shell: $SHELL"
         echo "Please manually add $INSTALL_DIR to your PATH"
+        return 1
     fi
 
-    if [[ -n "$SHELL_CONFIG" ]]; then
-        echo "" >> "$SHELL_CONFIG"
-        echo "# AI Team CLI" >> "$SHELL_CONFIG"
-        echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$SHELL_CONFIG"
-        echo -e "${GREEN}✓ Added $INSTALL_DIR to PATH in $SHELL_CONFIG${NC}"
-        echo -e "${BLUE}📝 Run 'source $SHELL_CONFIG' or restart your terminal${NC}"
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo -e "${CYAN}[DRY-RUN]${NC} Would add PATH to: $shell_config"
+        return 0
     fi
-fi
 
-# Verify all required files exist before installation
-echo -e "${BLUE}🔍 Verifying required files...${NC}"
-REQUIRED_FILES=("create_ai_team.py" "ai-bridge" "ai-bridge-old" "tmux_utils.py" "security_validator.py" "logging_config.py" "unified_context_manager.py" "interfaces.py" "send-claude-message.sh" "schedule_with_note.sh" "check-peer-messages.sh" "ai-team")
-
-for file in "${REQUIRED_FILES[@]}"; do
-    if [ ! -f "$SOURCE_DIR/$file" ]; then
-        echo -e "${RED}❌ Error: Required file '$file' not found in $SOURCE_DIR${NC}"
-        exit 1
-    fi
-done
-echo -e "${GREEN}✓ All required files found${NC}"
-
-# Copy the main script and dependencies
-echo -e "${BLUE}📦 Installing AI Team CLI...${NC}"
-
-# Copy main Python script
-cp "$SOURCE_DIR/create_ai_team.py" "$INSTALL_DIR/"
-echo -e "${GREEN}✓ Copied create_ai_team.py${NC}"
-
-# Copy bridge registry
-cp "$SOURCE_DIR/ai-bridge" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/ai-bridge"
-echo -e "${GREEN}✓ Copied ai-bridge${NC}"
-
-# Copy bridge registry backend (required by ai-bridge)
-cp "$SOURCE_DIR/ai-bridge-old" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/ai-bridge-old"
-echo -e "${GREEN}✓ Copied ai-bridge-old (bridge registry backend)${NC}"
-
-# Copy peer communication tools
-cp "$SOURCE_DIR/check-peer-messages.sh" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/check-peer-messages.sh"
-echo -e "${GREEN}✓ Copied check-peer-messages.sh${NC}"
-
-# Copy Python dependencies
-cp "$SOURCE_DIR/tmux_utils.py" "$INSTALL_DIR/"
-echo -e "${GREEN}✓ Copied tmux_utils.py${NC}"
-
-cp "$SOURCE_DIR/security_validator.py" "$INSTALL_DIR/"
-echo -e "${GREEN}✓ Copied security_validator.py${NC}"
-
-cp "$SOURCE_DIR/logging_config.py" "$INSTALL_DIR/"
-echo -e "${GREEN}✓ Copied logging_config.py${NC}"
-
-cp "$SOURCE_DIR/unified_context_manager.py" "$INSTALL_DIR/"
-echo -e "${GREEN}✓ Copied unified_context_manager.py${NC}"
-
-# Copy implementations directory for v1.1 DI architecture
-if [ -d "$SOURCE_DIR/implementations" ]; then
-    cp -r "$SOURCE_DIR/implementations" "$INSTALL_DIR/"
-    echo -e "${GREEN}✓ Copied implementations/ directory (v1.1 DI architecture)${NC}"
-fi
-
-# Copy interfaces.py for Protocol definitions
-cp "$SOURCE_DIR/interfaces.py" "$INSTALL_DIR/"
-echo -e "${GREEN}✓ Copied interfaces.py${NC}"
-
-# Copy shell script utilities
-cp "$SOURCE_DIR/send-claude-message.sh" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/send-claude-message.sh"
-echo -e "${GREEN}✓ Copied send-claude-message.sh${NC}"
-
-cp "$SOURCE_DIR/schedule_with_note.sh" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/schedule_with_note.sh"
-echo -e "${GREEN}✓ Copied schedule_with_note.sh${NC}"
-
-# Copy the orchestrator guide
-cp "$SOURCE_DIR/ORCHESTRATOR_GUIDE.md" "$INSTALL_DIR/"
-chmod 644 "$INSTALL_DIR/ORCHESTRATOR_GUIDE.md"
-echo -e "${GREEN}✓ Copied ORCHESTRATOR_GUIDE.md${NC}"
-
-# Copy the context helper
-cp "$SOURCE_DIR/context-status.sh" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/context-status.sh"
-echo -e "${GREEN}✓ Copied context-status.sh${NC}"
-
-# Copy the wrapper script
-cp "$SOURCE_DIR/ai-team" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/ai-team"
-echo -e "${GREEN}✓ Installed ai-team command${NC}"
+    echo "" >> "$shell_config"
+    echo "# AI Team CLI" >> "$shell_config"
+    echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$shell_config"
+    
+    success "Added $INSTALL_DIR to PATH in $shell_config"
+    info "Run 'source $shell_config' or restart your terminal"
+    
+    return 0
+}
 
 # Test installation
-echo -e "${BLUE}🧪 Testing installation...${NC}"
-if [ -x "$INSTALL_DIR/ai-team" ]; then
-    echo -e "${GREEN}✓ Installation successful!${NC}"
-else
-    echo -e "${RED}❌ Installation failed${NC}"
-    exit 1
-fi
+test_installation() {
+    progress "Testing installation..."
+    
+    # Test main command
+    if [[ -x "$INSTALL_DIR/ai-team" ]]; then
+        if "$INSTALL_DIR/ai-team" --help > /dev/null 2>&1; then
+            success "ai-team command works"
+        else
+            error "ai-team command failed to run"
+            return 1
+        fi
+    else
+        error "ai-team command not found or not executable"
+        return 1
+    fi
 
-# Test bridge registry functionality
-echo -e "${BLUE}🧪 Testing bridge registry...${NC}"
-if python3 "$INSTALL_DIR/ai-bridge" help >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ Bridge registry functional${NC}"
-else
-    echo -e "${YELLOW}⚠️  Bridge registry test failed${NC}"
-fi
+    # Test Python imports in install directory
+    progress "Testing Python modules in install directory..."
+    local test_script=$(mktemp)
+    cat > "$test_script" << EOF
+#!/usr/bin/env python3
+import sys
+sys.path.insert(0, '$INSTALL_DIR')
 
-echo ""
-echo "================================================"
-echo -e "${GREEN}🎉 AI Team CLI installed successfully!${NC}"
-echo ""
-echo "Files installed:"
-echo "  • create_ai_team.py (main script)"
-echo "  • ai-bridge (multi-bridge coordination)"
-echo "  • ai-bridge-old (bridge registry backend)"
-echo "  • tmux_utils.py (tmux management)"
-echo "  • check-peer-messages.sh (peer communication)"
-echo "  • security_validator.py (input validation)"
-echo "  • logging_config.py (logging setup)"
-echo "  • unified_context_manager.py (agent context)"
-echo "  • send-claude-message.sh (messaging utility)"
-echo "  • schedule_with_note.sh (scheduling utility)"
-echo "  • ORCHESTRATOR_GUIDE.md (tmux communication guide)"
-echo "  • context-status.sh (quick context restoration)"
-echo "  • ai-team (command wrapper)"
-echo ""
-echo "Usage:"
-echo -e "  ${BLUE}ai-team${NC}                                           # Create default team"
-echo -e "  ${BLUE}ai-team connect session1 session2 \"context\"${NC}     # Connect two teams (via ai-bridge)"
-echo -e "  ${BLUE}ai-team -s my-team${NC}         # Create with custom name"
-echo -e "  ${BLUE}ai-team --help${NC}             # Show help"
-echo ""
-echo "Bridge Management (ai-bridge):"
-echo -e "  ${BLUE}ai-bridge create team1 team2 \"coordination context\"${NC}  # Connect teams"
-echo -e "  ${BLUE}ai-bridge list${NC}                                         # List active bridges"
-echo -e "  ${BLUE}ai-bridge status team-name${NC}                             # Check team's bridges"
-echo -e "  ${BLUE}ai-bridge cleanup --dry-run${NC}                           # Preview complete cleanup"
-echo -e "  ${BLUE}ai-bridge cleanup --complete${NC}                          # Complete cleanup (all files)"
-echo -e "  ${BLUE}ai-bridge cleanup --max-age-days 7 --dry-run${NC}         # Preview age-based cleanup"
-echo -e "  ${BLUE}ai-bridge help${NC}                                         # Show detailed help"
-echo ""
-echo "Bridge Workflow Examples:"
-echo "  1. Create bridge: ai-bridge create frontend backend \"API sync\""
-echo "  2. Send message:  send-to-peer-frontend.sh \"Update ready\""
-echo "  3. Check msgs:    check-peer-messages.sh"
-echo "  4. Monitor:       ai-bridge status frontend"
-echo "  5. Cleanup:       ai-bridge cleanup --dry-run  # Preview cleanup"
-echo ""
-echo "Cleanup Management:"
-echo -e "  ${BLUE}Complete Cleanup (Default):${NC}"
-echo "    • ai-bridge cleanup                        # Remove all coordination files"
-echo "    • ai-bridge cleanup --complete             # Explicit complete cleanup"
-echo "    • ai-bridge cleanup --dry-run              # Preview what will be removed"
-echo ""
-echo -e "  ${BLUE}Age-Based Cleanup:${NC}"
-echo "    • ai-bridge cleanup --max-age-days 7       # Remove bridges older than 7 days"
-echo "    • ai-bridge cleanup --max-age-days 30 --dry-run  # Preview age-based cleanup"
-echo ""
-echo -e "  ${BLUE}What Gets Cleaned:${NC}"
-echo "    • Bridge configuration files (.ai-coordination/registry/bridges/)"
-echo "    • Session mapping files (.ai-coordination/registry/sessions/)"
-echo "    • Message files (.ai-coordination/messages/)"
-echo "    • Generated communication scripts (send-to-peer-*.sh)"
-echo "    • Registry index files (active-bridges.json)"
-echo "    • Legacy bridge context files (bridge_context.json)"
-echo ""
-echo "Real-world Bridge Use Cases:"
-echo "  • Mobile ↔ Web teams coordinating UI consistency"
-echo "  • Frontend ↔ Backend teams syncing API changes"
-echo "  • DevOps ↔ Security teams sharing deployment info"
-echo "  • Research ↔ Production teams transferring models"
-echo ""
-echo "What's created:"
-echo "  • Orchestrator: Coordinates and mediates"
-echo "  • Alex: Perfectionist architect (quality-focused)"
-echo "  • Morgan: Pragmatic shipper (speed-focused)"
-echo "  • Sam: Code janitor (cleanup-focused)"
-echo ""
+# Test core modules
+modules = ['logging_config', 'security_validator', 'context_registry', 'bridge_registry', 'tmux_utils', 'unified_context_manager']
+failed = []
 
-# Check if PATH update is needed
-if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    echo -e "${YELLOW}⚠️  To use immediately, run:${NC}"
-    echo -e "  ${BLUE}export PATH=\"\$PATH:$INSTALL_DIR\"${NC}"
-    echo -e "  ${BLUE}ai-team${NC}"
+for module in modules:
+    try:
+        __import__(module)
+        print(f"✓ {module}")
+    except Exception as e:
+        print(f"✗ {module}: {e}")
+        failed.append(module)
+
+if failed:
+    print(f"Failed: {', '.join(failed)}")
+    sys.exit(1)
+else:
+    print("All modules imported successfully!")
+    sys.exit(0)
+EOF
+
+    if python3 "$test_script"; then
+        success "Python module imports verified"
+    else
+        error "Python module import test failed"
+        rm -f "$test_script"
+        return 1
+    fi
+    
+    rm -f "$test_script"
+
+    # Test bridge registry (if available)
+    if [[ -x "$INSTALL_DIR/ai-bridge" ]]; then
+        if "$INSTALL_DIR/ai-bridge" help > /dev/null 2>&1; then
+            success "ai-bridge command works"
+        else
+            warning "ai-bridge command test failed (non-critical)"
+        fi
+    fi
+
+    success "Installation test completed successfully"
+    return 0
+}
+
+# Verify existing installation
+verify_installation() {
+    progress "Verifying existing installation..."
+    
+    local errors=0
+    local warnings=0
+
+    # Check if installation exists
+    if [[ ! -d "$INSTALL_DIR" ]]; then
+        error "Installation directory $INSTALL_DIR does not exist"
+        return 1
+    fi
+
+    # Check manifest
+    if [[ -f "$MANIFEST_FILE" ]]; then
+        success "Installation manifest found"
+        if command -v jq &> /dev/null; then
+            local install_date=$(jq -r '.install_date' "$MANIFEST_FILE" 2>/dev/null || echo "unknown")
+            local version=$(jq -r '.version' "$MANIFEST_FILE" 2>/dev/null || echo "unknown")
+            info "Installation: version $version, date $install_date"
+        fi
+    else
+        warning "No installation manifest found"
+        ((warnings++))
+    fi
+
+    # Check core files
+    for file in "${CORE_PYTHON_FILES[@]}" "${SHELL_SCRIPTS[@]}"; do
+        local target="$INSTALL_DIR/$file"
+        if [[ -f "$target" ]]; then
+            success "$file present"
+        else
+            error "$file missing"
+            ((errors++))
+        fi
+    done
+
+    # Check executable permissions
+    for file in "${SHELL_SCRIPTS[@]}"; do
+        local target="$INSTALL_DIR/$file"
+        if [[ -x "$target" ]]; then
+            success "$file is executable"
+        elif [[ -f "$target" ]]; then
+            error "$file exists but is not executable"
+            ((errors++))
+        fi
+    done
+
+    # Test functionality
+    if test_installation; then
+        success "Functionality test passed"
+    else
+        error "Functionality test failed"
+        ((errors++))
+    fi
+
+    # Summary
+    if [[ $errors -eq 0 ]]; then
+        success "Installation verification completed successfully"
+        if [[ $warnings -gt 0 ]]; then
+            info "$warnings warnings found (non-critical)"
+        fi
+        return 0
+    else
+        error "Installation verification failed with $errors errors and $warnings warnings"
+        return 1
+    fi
+}
+
+# Main installation process
+main() {
+    # Parse arguments first
+    parse_args "$@"
+    
+    # Initialize log
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): AI Team CLI installation started" > "$LOG_FILE"
+    
+    echo -e "${BLUE}🚀 AI Team CLI Enhanced Installation${NC}"
+    echo -e "${BLUE}================================================${NC}"
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo -e "${CYAN}🔍 DRY-RUN MODE: No changes will be made${NC}"
+    fi
+
+    # Handle special modes
+    if [[ "$VERIFY_ONLY" == "true" ]]; then
+        verify_installation
+        return $?
+    fi
+
+    if [[ "$UNINSTALL_ONLY" == "true" ]]; then
+        create_backup
+        uninstall_existing
+        success "Uninstall completed"
+        return 0
+    fi
+
+    # Full installation process
+    check_system_dependencies || return 1
+    validate_source_files || return 1
+    test_python_imports || return 1
+    
+    create_backup
+    uninstall_existing
+    install_files
+    setup_path
+    
+    if [[ "$DRY_RUN" == "false" ]]; then
+        test_installation || return 1
+    fi
+
     echo ""
-    echo -e "Or restart your terminal and run: ${BLUE}ai-team${NC}"
-else
-    echo -e "Ready to use! Run: ${BLUE}ai-team${NC}"
-fi
+    echo -e "${BLUE}================================================${NC}"
+    echo -e "${GREEN}🎉 AI Team CLI installation completed successfully!${NC}"
+    
+    if [[ "$DRY_RUN" == "false" ]]; then
+        echo ""
+        echo "Files installed:"
+        echo "  • Core Python modules: ${#CORE_PYTHON_FILES[@]} files"
+        echo "  • Shell scripts: ${#SHELL_SCRIPTS[@]} files"  
+        echo "  • Directories: ${#DIRECTORIES[@]} directories"
+        echo ""
+        echo "What's created:"
+        echo "  • Orchestrator: Coordinates and mediates"
+        echo "  • Alex: Perfectionist architect (quality-focused)"
+        echo "  • Morgan: Pragmatic shipper (speed-focused)"
+        echo "  • Sam: Code janitor (cleanup-focused)"
+        echo ""
+        echo "Usage:"
+        echo -e "  ${BLUE}ai-team${NC}                    # Create default team"
+        echo -e "  ${BLUE}ai-team --help${NC}             # Show help"
+        echo -e "  ${BLUE}ai-team --verify${NC}           # Verify installation"
+        
+        # Check PATH
+        if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+            echo ""
+            echo -e "${YELLOW}⚠️  To use immediately, run:${NC}"
+            echo -e "  ${BLUE}export PATH=\"\$PATH:$INSTALL_DIR\"${NC}"
+            echo -e "  ${BLUE}ai-team${NC}"
+            echo ""
+            echo -e "Or restart your terminal and run: ${BLUE}ai-team${NC}"
+        else
+            echo ""
+            echo -e "Ready to use! Run: ${BLUE}ai-team${NC}"
+        fi
+    fi
+    
+    echo -e "${BLUE}================================================${NC}"
+}
 
-echo "================================================"
+# Run main function with all arguments
+main "$@"
