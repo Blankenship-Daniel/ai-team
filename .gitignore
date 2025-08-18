@@ -94,7 +94,7 @@ config_backups/
 quality_reports/
 
 # Large assets
-Examples/
+# Examples/  # Commented out to allow demo scripts
 assets/
 screenshots/
 *.png

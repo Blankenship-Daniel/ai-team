@@ -33,7 +33,7 @@ class AgentProfile:
 
 
 class AITeamOrchestrator:
-    def __init__(self, non_interactive=False):
+    def __init__(self, non_interactive=False, observe_only=False):
         self.tmux = TmuxOrchestrator()
         self.session_name = "ai-team"
         self.agents: List[AgentProfile] = []
@@ -41,9 +41,15 @@ class AITeamOrchestrator:
         self.working_dir = os.getcwd()  # Capture the directory where user invoked the command
         self.context_manager = UnifiedContextManager(install_dir=Path(self.script_dir))
         self.non_interactive = non_interactive
+        self.observe_only = observe_only
         logger.info(
             "AITeamOrchestrator initialized",
-            extra={"script_dir": self.script_dir, "working_dir": self.working_dir, "non_interactive": non_interactive},
+            extra={
+                "script_dir": self.script_dir,
+                "working_dir": self.working_dir,
+                "non_interactive": non_interactive,
+                "observe_only": observe_only,
+            },
         )
 
     def create_agent_profiles(self) -> List[AgentProfile]:
@@ -297,8 +303,13 @@ WORKING CONTEXT:
                     logger.error(f"Invalid pane target {pane_target}: {error}")
                     continue
 
-                # Start Claude in the pane with --dangerously-skip-permissions
-                cmd = ["tmux", "send-keys", "-t", pane_target, "claude --dangerously-skip-permissions", "Enter"]
+                # Start Claude in the pane with appropriate flags
+                if self.observe_only:
+                    # In observe-only mode, start Claude without auto-permissions
+                    cmd = ["tmux", "send-keys", "-t", pane_target, "claude", "Enter"]
+                else:
+                    # Normal mode: start with --dangerously-skip-permissions for auto-work
+                    cmd = ["tmux", "send-keys", "-t", pane_target, "claude --dangerously-skip-permissions", "Enter"]
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 log_subprocess_call(logger, cmd, result)
 
@@ -355,8 +366,21 @@ WORKING CONTEXT:
 
                 # Enhance briefing with embedded context and ensure workspace
                 workspace = self.context_manager.ensure_workspace(self.session_name, agent.name)
+
+                # Add observe-only instruction if flag is set
+                briefing_to_use = agent.briefing
+                if self.observe_only:
+                    observe_instruction = (
+                        "\n\n🔍 OBSERVE-ONLY MODE ACTIVE:\n"
+                        "- Please introduce yourself and your capabilities\n"
+                        "- DO NOT start any work or analysis\n"
+                        "- Wait for explicit instructions from the orchestrator\n"
+                        "- You may familiarize yourself with the workspace but don't make changes"
+                    )
+                    briefing_to_use = agent.briefing + observe_instruction
+
                 enhanced_briefing = self.context_manager.inject_context_into_briefing(
-                    agent.briefing, agent.role.lower().replace(" ", "_")
+                    briefing_to_use, agent.role.lower().replace(" ", "_")
                 )
                 logger.debug(f"Agent {agent.name} workspace: {workspace.path}")
 
@@ -457,6 +481,16 @@ The agents are in these panes:
 
 Start by introducing yourself to all three agents and asking them to introduce themselves to each other."""
 
+            # Add observe-only instructions to orchestrator if flag is set
+            if self.observe_only:
+                orchestrator_briefing += """
+
+🔍 OBSERVE-ONLY MODE ACTIVE:
+- All agents have been instructed to only introduce themselves
+- They will NOT start any work until you give them explicit instructions
+- This prevents agents from immediately diving into random tasks
+- You should coordinate what work needs to be done before agents begin"""
+
             # Start Claude in orchestrator pane with --dangerously-skip-permissions
             subprocess.run(
                 [
@@ -502,7 +536,10 @@ Start by introducing yourself to all three agents and asking them to introduce t
     def display_team_info(self):
         """Display information about the created team"""
         print("\n" + "=" * 60)
-        print("🚀 AI TEAM SUCCESSFULLY CREATED!")
+        if self.observe_only:
+            print("🔍 AI TEAM CREATED IN OBSERVE-ONLY MODE!")
+        else:
+            print("🚀 AI TEAM SUCCESSFULLY CREATED!")
         print("=" * 60)
 
         print(f"\nSession: {self.session_name}")
@@ -527,8 +564,12 @@ Start by introducing yourself to all three agents and asking them to introduce t
 
         print("\nNext Steps:")
         print("1. Attach to the session to see the orchestrator")
-        print("2. The orchestrator will introduce the agents to each other")
-        print("3. Give them a coding challenge to see their different approaches!")
+        if self.observe_only:
+            print("2. Agents are in observe-only mode - they'll introduce themselves")
+            print("3. You can then assign specific tasks to prevent chaos")
+        else:
+            print("2. The orchestrator will introduce the agents to each other")
+            print("3. Give them a coding challenge to see their different approaches!")
         print("\n" + "=" * 60)
 
     def create_team(self):
@@ -612,6 +653,13 @@ This creates:
 
     parser.add_argument("--yes", "-y", action="store_true", help="Non-interactive mode: skip prompts and use defaults")
 
+    parser.add_argument(
+        "--observe-only",
+        "-o",
+        action="store_true",
+        help="Agents introduce themselves and wait for instructions (no auto-work)",
+    )
+
     args = parser.parse_args()
 
     # Validate session name from args
@@ -622,7 +670,7 @@ This creates:
         sys.exit(1)
 
     # Create the team
-    orchestrator = AITeamOrchestrator(non_interactive=args.yes)
+    orchestrator = AITeamOrchestrator(non_interactive=args.yes, observe_only=args.observe_only)
     orchestrator.session_name = args.session
 
     try:
