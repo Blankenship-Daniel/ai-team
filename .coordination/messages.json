@@ -10,5 +10,17 @@
     "timestamp": "2025-08-18T02:46:29.947496",
     "requires_ack": false,
     "ack_received": false
+  },
+  {
+    "message_id": "07de4e04-ed9c-4ad4-9077-eae9e8f73c36",
+    "from_team": "team1",
+    "to_team": "team2",
+    "message_type": "sync",
+    "payload": {
+      "payload": "test"
+    },
+    "timestamp": "2025-08-18T03:26:44.951131",
+    "requires_ack": true,
+    "ack_received": false
   }
 ]

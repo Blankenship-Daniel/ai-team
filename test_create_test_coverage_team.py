@@ -14,7 +14,7 @@ sys.modules['security_validator'] = Mock()
 sys.modules['logging_config'] = Mock()
 sys.modules['unified_context_manager'] = Mock()
 
-from create_test_coverage_team import TestCoverageOrchestrator, TestCoverageAgent
+from create_test_coverage_team import TestCoverageOrchestrator, TestAgent
 
 
 class TestCoverageTeamFast:

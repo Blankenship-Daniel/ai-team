@@ -16,15 +16,7 @@ from unittest.mock import Mock, patch, MagicMock, call, mock_open
 import uuid
 import sys
 
-from bridge_registry import (
-    BridgeRegistry,
-    BridgeCommand,
-    CreateBridgeCommand,
-    ListBridgesCommand,
-    CleanupBridgeCommand,
-    MonitorBridgeCommand,
-    BridgeCommandInvoker
-)
+from bridge_registry import BridgeRegistry
 
 
 class TestBridgeRegistry:

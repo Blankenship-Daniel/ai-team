@@ -1,11 +1,30 @@
 {
-  "timestamp": "2025-08-18T02:45:01.423380",
-  "total_teams": 0,
+  "timestamp": "2025-08-18T03:27:14.957029",
+  "total_teams": 3,
   "healthy_teams": 0,
-  "degraded_teams": 0,
+  "degraded_teams": 3,
   "failing_teams": 0,
   "isolated_teams": 0,
   "resource_conflicts": 0,
   "stale_heartbeats": 0,
-  "teams": {}
+  "teams": {
+    "team1": {
+      "status": "degraded",
+      "heartbeat_age_seconds": 2445.028229,
+      "error_count": 0,
+      "resource_count": 0
+    },
+    "team2": {
+      "status": "degraded",
+      "heartbeat_age_seconds": 2445.01847,
+      "error_count": 0,
+      "resource_count": 0
+    },
+    "dev-team": {
+      "status": "degraded",
+      "heartbeat_age_seconds": 2445.004879,
+      "error_count": 0,
+      "resource_count": 0
+    }
+  }
 }
