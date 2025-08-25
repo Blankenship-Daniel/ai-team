@@ -61,6 +61,10 @@ next_check_note.txt
 .tmux-session-state
 .tmux-orchestrator-context
 restore_context.sh
+.ai-team-workspace/
+.ai-teams/
+release-v*/
+technical_debt_report.txt
 
 # Node (for frontend)
 node_modules/
@@ -76,11 +80,15 @@ yarn-error.log*
 .env.local
 .env.*.local
 
-# Backups
+# Backups and Archives
 *.bak
 *.backup
 *.old
 *.orig
+.archive/
+*.tar.gz
+*.tar.gz.sha256
+*.zip
 
 # Temporary files
 tmp/

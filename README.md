@@ -2,6 +2,62 @@
 
 **Run AI agents 24/7 while you sleep** - The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 
+## 🚀 Quick Installation
+
+### One-Line Install (Recommended)
+```bash
+# Install globally using pipx (safest method)
+pipx install git+https://github.com/yourusername/ai-team.git
+```
+
+### Install from Source
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/ai-team.git
+cd ai-team
+
+# Run the installation script
+./install_global.sh
+
+# Or use the quick installer
+./quick_install.sh
+```
+
+### Manual Installation
+```bash
+# Ensure pipx is installed
+brew install pipx  # macOS
+# or
+python3 -m pip install --user pipx  # Linux/other
+
+# Install ai-team
+pipx install .  # from source directory
+# or
+pipx install git+https://github.com/yourusername/ai-team.git  # from GitHub
+```
+
+## 🎯 Quick Start
+
+```bash
+# Create default AI team (interactive)
+ai-team
+
+# Non-interactive mode (uses defaults)
+ai-team -y
+
+# Safe observe-only mode (no auto-work, no git writes)
+ai-team -o -n
+
+# Create team with custom name
+ai-team --session my-project
+
+# Team works on specific initiative
+ai-team -i "Build a REST API with authentication"
+
+# Show all options
+ai-team --help
+```
+
 ## 🤖 Key Capabilities & Autonomous Features
 
 - **Self-trigger** - Agents schedule their own check-ins and continue work autonomously

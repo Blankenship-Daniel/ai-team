@@ -1,0 +1,16 @@
+include README.md
+include LICENSE
+include VERSION
+include requirements.txt
+include requirements-dev.txt
+include pyproject.toml
+recursive-include ai_team *.py
+recursive-exclude tests *
+recursive-exclude scripts *
+recursive-exclude .archive *
+recursive-exclude docs *
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude .coverage
+global-exclude .pytest_cache

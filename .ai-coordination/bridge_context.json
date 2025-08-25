@@ -1,8 +1,0 @@
-{
-  "session1": "\"ai-team\"",
-  "session2": "\"ai-team-2\"",
-  "coordination_context": "\"Test coverage coordination session\"",
-  "created_at": "2025-08-18T01:36:52.587424",
-  "bridge_id": "bridge-ae5bfc23c2b0",
-  "_note": "Legacy compatibility - use bridge registry for multi-bridge support"
-}
